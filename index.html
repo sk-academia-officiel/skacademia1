@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SK ACADEMIA — Votre Clé Pour Réussir les Concours au Sénégal</title>
+    <meta name="description" content="SK ACADEMIA : Fascicules numériques, cours vidéo, et formations en informatique de qualité pour exceller aux concours sénégalais. ENA, Police, Gendarmerie, Douanes, Sage-femme, FASTEF, Polytechnique.">
+    <meta name="keywords" content="concours sénégal, fascicules concours, ENA sénégal, police nationale, gendarmerie, douanes, FASTEF, Polytechnique Thiès, sage-femme, CREM, SK ACADEMIA">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- LOADER -->
+    <div class="loader" id="loader">
+        <div class="loader-inner">
+            <div class="loader-logo">🎓</div>
+            <div class="loader-brand">SK ACADEMIA</div>
+            <div class="loader-bar"><div class="loader-bar-fill"></div></div>
+            <p>Chargement de votre plateforme...</p>
+        </div>
+    </div>
+
+    <!-- AUTH MODAL -->
+    <div class="auth-overlay" id="authOverlay"></div>
+    <div class="auth-modal" id="authModal">
+        <button class="auth-close" id="authClose">✕</button>
+        <div class="auth-header">
+            <div class="auth-logo">🎓</div>
+            <h2 class="auth-title">Bienvenue sur SK ACADEMIA</h2>
+            <p class="auth-subtitle">Connectez-vous pour accéder à toutes les ressources</p>
+        </div>
+        <div class="auth-tabs">
+            <button class="auth-tab active" data-tab="login" id="tabLogin">Connexion</button>
+            <button class="auth-tab" data-tab="register" id="tabRegister">Inscription</button>
+        </div>
+        <!-- LOGIN FORM -->
+        <form class="auth-form" id="loginForm">
+            <div class="auth-field">
+                <label for="loginEmail">📧 Adresse e-mail</label>
+                <input type="email" id="loginEmail" placeholder="votre@email.com" required autocomplete="email">
+            </div>
+            <div class="auth-field">
+                <label for="loginPassword">🔒 Mot de passe</label>
+                <div class="password-wrap">
+                    <input type="password" id="loginPassword" placeholder="Votre mot de passe" required autocomplete="current-password">
+                    <button type="button" class="toggle-password" data-target="loginPassword">👁️</button>
+                </div>
+            </div>
+            <div class="auth-options">
+                <label class="auth-check"><input type="checkbox" id="rememberMe"> Se souvenir de moi</label>
+                <a href="#" class="auth-link" id="forgotPassword">Mot de passe oublié ?</a>
+            </div>
+            <div class="auth-error hidden" id="loginError"></div>
+            <button type="submit" class="auth-submit">Se Connecter →</button>
+        </form>
+        <!-- REGISTER FORM -->
+        <form class="auth-form hidden" id="registerForm">
+            <div class="auth-row">
+                <div class="auth-field">
+                    <label for="regFirstName">👤 Prénom</label>
+                    <input type="text" id="regFirstName" placeholder="Prénom" required>
+                </div>
+                <div class="auth-field">
+                    <label for="regLastName">👤 Nom</label>
+                    <input type="text" id="regLastName" placeholder="Nom" required>
+                </div>
+            </div>
+            <div class="auth-field">
+                <label for="regEmail">📧 Adresse e-mail</label>
+                <input type="email" id="regEmail" placeholder="votre@email.com" required autocomplete="email">
+            </div>
+            <div class="auth-field">
+                <label for="regPhone">📞 Téléphone</label>
+                <input type="tel" id="regPhone" placeholder="+221 XX XXX XX XX">
+            </div>
+            <div class="auth-field">
+                <label for="regPassword">🔒 Mot de passe</label>
+                <div class="password-wrap">
+                    <input type="password" id="regPassword" placeholder="Minimum 6 caractères" required minlength="6" autocomplete="new-password">
+                    <button type="button" class="toggle-password" data-target="regPassword">👁️</button>
+                </div>
+            </div>
+            <div class="auth-field">
+                <label for="regConfirmPassword">🔒 Confirmer le mot de passe</label>
+                <div class="password-wrap">
+                    <input type="password" id="regConfirmPassword" placeholder="Confirmez votre mot de passe" required minlength="6" autocomplete="new-password">
+                    <button type="button" class="toggle-password" data-target="regConfirmPassword">👁️</button>
+                </div>
+            </div>
+            <label class="auth-check" style="margin-bottom:0.5rem;"><input type="checkbox" id="acceptTerms" required> J'accepte les <a href="#" class="auth-link">conditions d'utilisation</a></label>
+            <div class="auth-error hidden" id="registerError"></div>
+            <button type="submit" class="auth-submit auth-submit-register">Créer mon Compte →</button>
+        </form>
+        <div class="auth-footer">
+            <p id="authFooterText">Pas encore de compte ? <a href="#" id="switchToRegister" class="auth-link">Inscrivez-vous</a></p>
+        </div>
+    </div>
+
+    <!-- CART SIDEBAR -->
+    <div class="cart-overlay" id="cartOverlay"></div>
+    <aside class="cart-sidebar" id="cartSidebar">
+        <div class="cart-top">
+            <h3>🛒 Mon Panier</h3>
+            <button class="btn-close" id="closeCart">✕</button>
+        </div>
+        <div class="cart-body" id="cartBody">
+            <div class="cart-empty">
+                <span>📭</span>
+                <p>Votre panier est vide</p>
+            </div>
+        </div>
+        <div class="cart-bottom">
+            <div class="cart-total-row">
+                <span>Total</span>
+                <strong id="cartTotal">0 FCFA</strong>
+            </div>
+            <div class="checkout-methods">
+                <button class="btn-checkout btn-wave" onclick="simulatePayment('Wave')">Payer avec Wave</button>
+                <button class="btn-checkout btn-om" onclick="simulatePayment('Orange Money')">Payer avec Orange Money</button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- TOP BAR -->
+    <div class="top-bar">
+        <div class="top-bar-inner">
+            <span class="top-bar-text">📚 Digital Products & Exam Preparation in Senegal</span>
+            <div class="top-bar-socials">
+                <a href="#" aria-label="Facebook">📘</a>
+                <a href="#" aria-label="Instagram">📸</a>
+                <a href="#" aria-label="YouTube">▶️</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- NAVBAR -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-inner">
+            <a href="#accueil" class="nav-logo">
+                <div class="logo-icon">
+                    <span class="logo-icon-emoji">🎓</span>
+                </div>
+                <div class="logo-text">
+                    <span class="logo-main">SK ACADEMIA</span>
+                    <span class="logo-sub">Excellence Académique</span>
+                </div>
+            </a>
+
+            <div class="nav-menu" id="navMenu">
+                <a href="#accueil" class="nav-item active">Accueil</a>
+                <a href="#boutique" class="nav-item">Boutique</a>
+                <a href="#concours" class="nav-item">Préparation Concours</a>
+                <a href="#formations" class="nav-item">Formations Informatique</a>
+                <a href="#about" class="nav-item">À Propos</a>
+                <a href="#contact" class="nav-item">Contact</a>
+            </div>
+
+            <div class="nav-right">
+                <button class="cart-toggle" id="cartToggle">
+                    🛒
+                    <span class="cart-badge" id="cartBadge">0</span>
+                </button>
+                <!-- Auth buttons: login or profile -->
+                <button class="btn-login-nav" id="btnLoginNav" onclick="openAuthModal()">
+                    👤 Connexion
+                </button>
+                <div class="user-profile-nav hidden" id="userProfileNav">
+                    <button class="user-avatar-btn" id="userAvatarBtn">
+                        <span class="user-avatar" id="userAvatar">SK</span>
+                        <span class="user-name-nav" id="userNameNav">Utilisateur</span>
+                        <span class="nav-arrow-down">▾</span>
+                    </button>
+                    <div class="user-dropdown" id="userDropdown">
+                        <div class="user-dropdown-header">
+                            <span class="user-avatar-lg" id="userAvatarLg">SK</span>
+                            <div>
+                                <strong id="userFullName">Utilisateur</strong>
+                                <span id="userEmailDisplay">email@example.com</span>
+                            </div>
+                        </div>
+                        <div class="user-dropdown-divider"></div>
+                        <a href="#" class="user-dropdown-item">👤 Mon Profil</a>
+                        <a href="#" class="user-dropdown-item">📦 Mes Achats</a>
+                        <a href="#" class="user-dropdown-item">⚙️ Paramètres</a>
+                        <div class="user-dropdown-divider"></div>
+                        <button class="user-dropdown-item logout-item" id="btnLogout">🚪 Déconnexion</button>
+                    </div>
+                </div>
+                <button class="hamburger" id="hamburger">
+                    <span></span><span></span><span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- HERO -->
+    <section id="accueil" class="hero page-section">
+        <div class="hero-inner">
+            <div class="hero-content">
+                <div class="hero-badge">🇸🇳 Plateforme Éducative #1 au Sénégal</div>
+                <h1 class="hero-title">
+                    SK ACADEMIA : VOTRE CLÉ POUR <span class="text-orange">RÉUSSIR LES CONCOURS</span> AU SÉNÉGAL
+                </h1>
+                <p class="hero-desc">
+                    Fascicules numériques, cours vidéo, et formations en informatique de qualité pour exceller.
+                </p>
+                <div class="hero-buttons">
+                    <a href="#boutique" class="btn-primary">Découvre nos Produits →</a>
+                    <a href="#concours" class="btn-secondary">Voir les Concours</a>
+                </div>
+                <div class="hero-stats">
+                    <div class="hero-stat">
+                        <strong>500+</strong>
+                        <span>Documents</span>
+                    </div>
+                    <div class="hero-stat">
+                        <strong>15+</strong>
+                        <span>Concours</span>
+                    </div>
+                    <div class="hero-stat">
+                        <strong>2 000+</strong>
+                        <span>Étudiants</span>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="hero-image-wrapper">
+                    <!-- Floating cards -->
+                    <div class="hero-float-card hfc-top">
+                        <div class="hfc-icon blue">📋</div>
+                        <div>
+                            <strong>500+ Docs</strong>
+                            <span>Disponibles</span>
+                        </div>
+                    </div>
+                    <div class="hero-float-card hfc-bottom">
+                        <div class="hfc-icon orange">🏆</div>
+                        <div>
+                            <strong>98% Réussite</strong>
+                            <span>Nos étudiants</span>
+                        </div>
+                    </div>
+                    <img src="images/hero-student.png" alt="Étudiant préparant un concours sénégalais avec SK ACADEMIA" id="heroImage">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CATEGORIES SECTION -->
+    <section id="categories" class="section page-section">
+        <div class="section-head">
+            <div class="section-tag">Nos Spécialités</div>
+            <h2>NOS CATÉGORIES DE <span class="text-orange">PRODUITS</span></h2>
+            <p>Explorez nos trois pôles d'excellence pour votre réussite</p>
+        </div>
+        <div class="categories-grid">
+            <div class="category-card reveal" data-filter="concours">
+                <div class="cat-icon-wrap">
+                    <span style="font-size:2.5rem">📋</span>
+                </div>
+                <h3>Préparation Concours (Sénégal)</h3>
+                <div class="cat-list">
+                    Concours ENA<br>
+                    Concours Gendarmerie<br>
+                    Concours Santé
+                </div>
+                <button class="cat-btn" data-filter="all-concours">Explorer →</button>
+            </div>
+            <div class="category-card reveal" data-filter="formation">
+                <div class="cat-icon-wrap">
+                    <span style="font-size:2.5rem">💻</span>
+                </div>
+                <h3>Formations Informatique</h3>
+                <div class="cat-list">
+                    Bureautique (Word, Excel)<br>
+                    Programmation<br>
+                    Web Design
+                </div>
+                <button class="cat-btn" data-filter="formation">Explorer →</button>
+            </div>
+            <div class="category-card reveal" data-filter="fascicule">
+                <div class="cat-icon-wrap">
+                    <span style="font-size:2.5rem">📄</span>
+                </div>
+                <h3>Fascicules Digitaux & Ressources</h3>
+                <div class="cat-list">
+                    Fascicules<br>
+                    Ressources
+                </div>
+                <button class="cat-btn" data-filter="fascicule">Explorer →</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- CONCOURS SECTION — Connexion requise pour formation en ligne -->
+    <section id="concours" class="section section-alt page-section">
+        <div class="section-head">
+            <div class="section-tag">🔒 Préparation Concours</div>
+            <h2>Préparez <span class="text-orange">Votre Concours</span></h2>
+            <p>Connectez-vous pour choisir votre concours et suivre une formation en ligne avec accompagnement personnalisé</p>
+        </div>
+
+        <!-- Subscription Banner -->
+        <div class="subscription-banner reveal">
+            <div class="sub-banner-content">
+                <div class="sub-banner-icon">🎓</div>
+                <div class="sub-banner-text">
+                    <h3>Accès Formation en Ligne</h3>
+                    <p>Créez votre compte pour accéder aux formations, suivre vos progrès et bénéficier d'un accompagnement personnalisé</p>
+                </div>
+                <div class="sub-banner-plans">
+                    <div class="sub-plan">
+                        <span class="plan-name">Mensuel</span>
+                        <strong class="plan-price">5 000 FCFA</strong>
+                        <span class="plan-period">/mois</span>
+                    </div>
+                    <div class="sub-plan popular">
+                        <span class="plan-badge">⭐ Populaire</span>
+                        <span class="plan-name">Trimestriel</span>
+                        <strong class="plan-price">12 000 FCFA</strong>
+                        <span class="plan-period">/3 mois</span>
+                    </div>
+                    <div class="sub-plan">
+                        <span class="plan-name">Annuel</span>
+                        <strong class="plan-price">40 000 FCFA</strong>
+                        <span class="plan-period">/an</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Concours Grid with Images -->
+        <div class="concours-grid-v2" id="concoursGrid">
+            <div class="concours-card reveal" data-concours="administration">
+                <div class="concours-card-img">
+                    <img src="images/concours-administration.png" alt="Concours Administration et Justice au Sénégal - ENA, CREM, Magistrat">
+                    <div class="concours-card-overlay">
+                        <span class="concours-badge-cat">🏛️ Administration</span>
+                    </div>
+                </div>
+                <div class="concours-card-body">
+                    <h3>Administration & Justice</h3>
+                    <ul>
+                        <li>Concours ENA</li>
+                        <li>CREM (toutes spécialités)</li>
+                        <li>Concours Magistrat</li>
+                        <li>Concours Greffier</li>
+                    </ul>
+                    <div class="concours-card-footer">
+                        <span class="concours-docs">📋 12 Fascicules</span>
+                        <button class="btn-concours-access" data-filter="administration">Accéder →</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="concours-card featured reveal" data-concours="securite">
+                <div class="concours-card-popular">🔥 Le Plus Demandé</div>
+                <div class="concours-card-img">
+                    <img src="images/concours-securite.png" alt="Concours Police Nationale et Gendarmerie du Sénégal">
+                    <div class="concours-card-overlay">
+                        <span class="concours-badge-cat">🛡️ Sécurité</span>
+                    </div>
+                </div>
+                <div class="concours-card-body">
+                    <h3>Sécurité & Défense</h3>
+                    <ul>
+                        <li>Police Nationale</li>
+                        <li>Gendarmerie Nationale</li>
+                        <li>Douanes Sénégalaises</li>
+                        <li>ENSOA</li>
+                    </ul>
+                    <div class="concours-card-footer">
+                        <span class="concours-docs">📋 18 Fascicules</span>
+                        <button class="btn-concours-access" data-filter="securite">Accéder →</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="concours-card reveal" data-concours="douanes">
+                <div class="concours-card-img">
+                    <img src="images/concours-douanes.png" alt="Concours Douanes Sénégalaises">
+                    <div class="concours-card-overlay">
+                        <span class="concours-badge-cat">🛃 Douanes</span>
+                    </div>
+                </div>
+                <div class="concours-card-body">
+                    <h3>Douanes Sénégalaises</h3>
+                    <ul>
+                        <li>Inspecteur des Douanes</li>
+                        <li>Contrôleur des Douanes</li>
+                        <li>Agent de Constatation</li>
+                    </ul>
+                    <div class="concours-card-footer">
+                        <span class="concours-docs">📋 8 Fascicules</span>
+                        <button class="btn-concours-access" data-filter="securite">Accéder →</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="concours-card reveal" data-concours="sante">
+                <div class="concours-card-img">
+                    <img src="images/concours-sante.png" alt="Concours Sage-femme et Santé au Sénégal">
+                    <div class="concours-card-overlay">
+                        <span class="concours-badge-cat">🩺 Santé</span>
+                    </div>
+                </div>
+                <div class="concours-card-body">
+                    <h3>Santé & Social</h3>
+                    <ul>
+                        <li>Concours Sage-femme</li>
+                        <li>Concours INSEPS</li>
+                        <li>Concours UDES</li>
+                    </ul>
+                    <div class="concours-card-footer">
+                        <span class="concours-docs">📋 10 Fascicules</span>
+                        <button class="btn-concours-access" data-filter="sante">Accéder →</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="concours-card reveal" data-concours="grandes-ecoles">
+                <div class="concours-card-img">
+                    <img src="images/concours-polytechnique.png" alt="Concours Polytechnique Thiès et Dakar">
+                    <div class="concours-card-overlay">
+                        <span class="concours-badge-cat">📐 Grandes Écoles</span>
+                    </div>
+                </div>
+                <div class="concours-card-body">
+                    <h3>Grandes Écoles & Ingénierie</h3>
+                    <ul>
+                        <li>Polytechnique de Thiès (EPT)</li>
+                        <li>Polytechnique de Dakar (ESP)</li>
+                    </ul>
+                    <div class="concours-card-footer">
+                        <span class="concours-docs">📋 6 Fascicules</span>
+                        <button class="btn-concours-access" data-filter="grandes-ecoles">Accéder →</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="concours-card reveal" data-concours="enseignement">
+                <div class="concours-card-img">
+                    <img src="images/concours-enseignement.png" alt="Concours FASTEF Enseignement au Sénégal">
+                    <div class="concours-card-overlay">
+                        <span class="concours-badge-cat">📚 Enseignement</span>
+                    </div>
+                </div>
+                <div class="concours-card-body">
+                    <h3>Enseignement (FASTEF)</h3>
+                    <ul>
+                        <li>FASTEF (toutes spécialités)</li>
+                        <li>Cours de langue</li>
+                        <li>Méthodologie pédagogique</li>
+                    </ul>
+                    <div class="concours-card-footer">
+                        <span class="concours-docs">📋 9 Fascicules</span>
+                        <button class="btn-concours-access" data-filter="enseignement">Accéder →</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- BOUTIQUE / CATALOGUE -->
+    <section id="boutique" class="section page-section">
+        <div class="section-head">
+            <div class="section-tag">Boutique</div>
+            <h2>NOS PRODUITS <span class="text-orange">VEDETTES</span></h2>
+            <p>Tous nos produits pédagogiques à portée de clic</p>
+        </div>
+
+        <div class="filter-bar">
+            <button class="filter-pill active" data-filter="all">Tout</button>
+            <button class="filter-pill" data-filter="fascicule">📋 Fascicules</button>
+            <button class="filter-pill" data-filter="annale">📜 Annales</button>
+            <button class="filter-pill" data-filter="cours">📖 Cours PDF</button>
+            <button class="filter-pill" data-filter="formation">🎓 Formations</button>
+            <button class="filter-pill" data-filter="administration">🏛️ Administration</button>
+            <button class="filter-pill" data-filter="securite">🛡️ Sécurité</button>
+            <button class="filter-pill" data-filter="sante">🩺 Santé</button>
+            <button class="filter-pill" data-filter="enseignement">📚 Enseignement</button>
+            <button class="filter-pill" data-filter="grandes-ecoles">📐 Grandes Écoles</button>
+        </div>
+
+        <div class="products-grid" id="productsGrid"></div>
+
+        <div class="no-results hidden" id="noResults">
+            <span>🔎</span>
+            <p>Aucun produit trouvé pour cette recherche.</p>
+        </div>
+    </section>
+
+    <!-- QUIZ SECTION -->
+    <section id="quiz" class="section section-alt page-section">
+        <div class="quiz-promo">
+            <div class="quiz-text">
+                <div class="section-tag">Nouveauté</div>
+                <h2>Quiz & Exercices <span class="text-orange">Interactifs</span></h2>
+                <p>Testez vos connaissances avec nos séries de questions-réponses et nos épreuves simulées. Disponible pour chaque concours.</p>
+                <ul class="quiz-features">
+                    <li><span class="check-icon">✓</span> Questions types concours</li>
+                    <li><span class="check-icon">✓</span> Épreuves simulées chronométrées</li>
+                    <li><span class="check-icon">✓</span> Corrections détaillées</li>
+                    <li><span class="check-icon">✓</span> Suivi de vos performances</li>
+                </ul>
+                <a href="#" class="btn-secondary">Explorer les Quiz →</a>
+            </div>
+            <div class="quiz-cards">
+                <div class="quiz-card qc-1">
+                    <div class="qc-header">Culture Générale — ENA</div>
+                    <div class="qc-q">Quel est le rôle du Conseil économique, social et environnemental du Sénégal ?</div>
+                    <div class="qc-choices">
+                        <div class="qc-choice correct">A — Organe consultatif</div>
+                        <div class="qc-choice">B — Organe exécutif</div>
+                        <div class="qc-choice">C — Organe judiciaire</div>
+                    </div>
+                </div>
+                <div class="quiz-card qc-2">
+                    <div class="qc-header">Mathématiques — Polytechnique</div>
+                    <div class="qc-q">Résoudre : 2x² - 8x + 6 = 0</div>
+                    <div class="qc-choices">
+                        <div class="qc-choice">A — x = 1 et x = 2</div>
+                        <div class="qc-choice correct">B — x = 1 et x = 3</div>
+                        <div class="qc-choice">C — x = 2 et x = 4</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FORMATIONS SECTION -->
+    <section id="formations" class="section page-section">
+        <div class="section-head">
+            <div class="section-tag">Formations</div>
+            <h2>Nos <span class="text-orange">Formations</span></h2>
+            <p>Renforcez vos compétences avec des cours structurés et progressifs</p>
+        </div>
+        <div class="formations-grid" id="formationsGrid"></div>
+    </section>
+
+    <!-- DOCUMENTS SECTION -->
+    <section id="documents" class="section section-alt page-section">
+        <div class="section-head">
+            <div class="section-tag">Téléchargement</div>
+            <h2>Espace <span class="text-orange">Documents</span></h2>
+            <p>Cours PDF, annales et fiches de révision prêts à télécharger</p>
+        </div>
+        <div class="docs-grid" id="documentsGrid"></div>
+    </section>
+    <!-- DASHBOARD ETUDIANT (NOUVEAU) -->
+    <section id="dashboard" class="section section-alt page-section">
+        <div class="dashboard-layout">
+            <aside class="dashboard-sidebar">
+                <div class="dash-user-info">
+                    <div class="dash-avatar" id="dashAvatar">SK</div>
+                    <div class="dash-name" id="dashName">Utilisateur</div>
+                    <div class="dash-role">Étudiant Premium</div>
+                </div>
+                <nav class="dash-nav">
+                    <button class="dash-nav-btn active" data-tab="dash-courses">📚 Mes Formations</button>
+                    <button class="dash-nav-btn" data-tab="dash-docs">📋 Mes Fascicules</button>
+                    <button class="dash-nav-btn" data-tab="dash-affiliate">🔗 Affiliation (Gains)</button>
+                    <button class="dash-nav-btn dash-logout" onclick="clearCurrentUser(); location.reload();">🚪 Déconnexion</button>
+                </nav>
+            </aside>
+            <main class="dashboard-content">
+                <!-- Tab: Formations -->
+                <div class="dash-tab active" id="dash-courses">
+                    <h2>Mes Formations (En cours)</h2>
+                    <div class="dash-cards-grid">
+                        <div class="dash-course-card">
+                            <div class="dash-cc-img"><img src="images/concours-securite.png" alt="Sécurité"></div>
+                            <div class="dash-cc-info">
+                                <h3>Préparation Concours Police</h3>
+                                <div class="progress-bar"><div class="progress-fill" style="width: 45%;"></div></div>
+                                <span class="progress-text">45% complété</span>
+                                <button class="btn-primary btn-sm" onclick="navigateTo('#course')">Continuer →</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Documents -->
+                <div class="dash-tab" id="dash-docs">
+                    <h2>Mes Fascicules Achetés</h2>
+                    <div class="dash-list">
+                        <div class="dash-list-item">
+                            <div class="dash-item-icon">📄</div>
+                            <div class="dash-item-text">
+                                <strong>Fascicule Complet — Concours ENA</strong>
+                                <span>Acheté le 12 Mars 2026</span>
+                            </div>
+                            <button class="btn-secondary btn-sm">Télécharger PDF</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Affiliation -->
+                <div class="dash-tab" id="dash-affiliate">
+                    <h2>Mon Programme d'Affiliation</h2>
+                    <div class="affiliate-stats">
+                        <div class="aff-stat-card">
+                            <span class="aff-stat-title">Gains Totaux</span>
+                            <strong class="aff-stat-val text-orange">25 000 FCFA</strong>
+                        </div>
+                        <div class="aff-stat-card">
+                            <span class="aff-stat-title">Ventes générées</span>
+                            <strong class="aff-stat-val">5</strong>
+                        </div>
+                    </div>
+                    <div class="affiliate-link-box">
+                        <span>Votre lien de parrainage:</span>
+                        <code>https://skacademia.sn/ref/SK-4829</code>
+                        <button class="btn-secondary btn-sm" onclick="showToast('✅', 'Lien copié dans le presse-papier !')">Copier</button>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </section>
+
+    <!-- COURSE PLAYER (NOUVEAU) -->
+    <section id="course" class="page-section course-section">
+        <div class="course-layout">
+            <aside class="course-sidebar">
+                <div class="course-header">
+                    <button class="btn-back" onclick="navigateTo('#dashboard')">← Retour</button>
+                    <h3>Préparation Concours Police</h3>
+                </div>
+                <div class="course-modules">
+                    <div class="course-module active">
+                        <div class="course-module-title">Module 1 : Culture Générale</div>
+                        <div class="course-lesson active"><span class="lesson-icon">▶️</span> L'histoire politique du Sénégal</div>
+                        <div class="course-lesson"><span class="lesson-icon">▶️</span> Les institutions de la République</div>
+                        <div class="course-lesson"><span class="lesson-icon">📄</span> QCM d'entraînement (PDF)</div>
+                    </div>
+                    <div class="course-module">
+                        <div class="course-module-title">Module 2 : Droit Pénal</div>
+                        <div class="course-lesson"><span class="lesson-icon">▶️</span> Introduction au droit pénal</div>
+                    </div>
+                </div>
+            </aside>
+            <main class="course-main">
+                <div class="course-video-placeholder">
+                    <div class="play-btn">▶</div>
+                    <span>L'histoire politique du Sénégal</span>
+                </div>
+                <div class="course-content-info">
+                    <h2>Chapitre 1 : L'histoire politique du Sénégal</h2>
+                    <p>Dans ce chapitre, nous aborderons les grandes dates qui ont marqué l'évolution politique du Sénégal depuis l'indépendance...</p>
+                    <button class="btn-primary">Marquer comme terminé ✔️</button>
+                </div>
+            </main>
+        </div>
+    </section>
+
+    <!-- ABOUT SECTION -->
+    <section id="about" class="section page-section">
+        <div class="section-head">
+            <div class="section-tag">À Propos</div>
+            <h2>Pourquoi Choisir <span class="text-orange">SK ACADEMIA</span> ?</h2>
+            <p>Notre mission est votre réussite aux concours sénégalais</p>
+        </div>
+        <div class="services-grid">
+            <div class="service-card reveal">
+                <div class="svc-icon">🎯</div>
+                <h3>Ressources Ciblées</h3>
+                <p>Des fascicules conçus spécifiquement pour chaque concours sénégalais, par des experts du domaine.</p>
+            </div>
+            <div class="service-card reveal">
+                <div class="svc-icon">📱</div>
+                <h3>Accès Immédiat</h3>
+                <p>Téléchargez vos documents instantanément après achat. Étudiez à votre rythme, où que vous soyez.</p>
+            </div>
+            <div class="service-card reveal">
+                <div class="svc-icon">💻</div>
+                <h3>Formations Informatique</h3>
+                <p>Développez vos compétences digitales avec nos formations en bureautique, programmation et IA.</p>
+            </div>
+            <div class="service-card reveal">
+                <div class="svc-icon">🤝</div>
+                <h3>Accompagnement</h3>
+                <p>Un support personnalisé via WhatsApp pour vous guider dans votre préparation aux concours.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- SERVICES SECTION -->
+    <section id="services" class="section section-alt page-section">
+        <div class="section-head">
+            <div class="section-tag">Accompagnement</div>
+            <h2>Nos <span class="text-orange">Services</span></h2>
+            <p>Un accompagnement personnalisé pour booster vos chances de réussite</p>
+        </div>
+        <div class="services-grid">
+            <div class="service-card reveal">
+                <div class="svc-icon">🎯</div>
+                <h3>Coaching Individuel</h3>
+                <p>Séances personnalisées avec un expert pour identifier vos lacunes et booster vos performances.</p>
+                <span class="svc-price">Sur devis</span>
+            </div>
+            <div class="service-card reveal">
+                <div class="svc-icon">📱</div>
+                <h3>Cours Particuliers en Ligne</h3>
+                <p>Cours visio avec nos formateurs expérimentés pour vous préparer efficacement aux épreuves.</p>
+                <span class="svc-price">À partir de 15 000 FCFA</span>
+            </div>
+            <div class="service-card reveal">
+                <div class="svc-icon">💻</div>
+                <h3>Développement Informatique</h3>
+                <p>Création de sites web, applications et solutions numériques pour votre entreprise ou projet.</p>
+                <span class="svc-price">Sur devis</span>
+            </div>
+            <div class="service-card reveal">
+                <div class="svc-icon">🤖</div>
+                <h3>Consulting & IA</h3>
+                <p>Intégration de l'intelligence artificielle dans vos processus métiers et formation de vos équipes.</p>
+                <span class="svc-price">Sur devis</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- CONTACT SECTION -->
+    <section id="contact" class="section page-section">
+        <div class="section-head">
+            <div class="section-tag">Contact</div>
+            <h2>Contactez-<span class="text-orange">Nous</span></h2>
+            <p>Une question ? N'hésitez pas à nous écrire</p>
+        </div>
+        <div style="max-width:600px; margin:0 auto; padding:0 2rem;">
+            <div style="display:flex; flex-direction:column; gap:1rem;">
+                <div style="display:flex; align-items:center; gap:1rem; padding:1.25rem; background:var(--bg-section); border-radius:var(--radius); border:1px solid var(--border);">
+                    <span style="font-size:1.5rem;">📧</span>
+                    <div>
+                        <strong style="display:block;color:var(--text-dark);">Email</strong>
+                        <span style="color:var(--text-muted);font-size:0.9rem;">contact@skacademia.sn</span>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:1rem; padding:1.25rem; background:var(--bg-section); border-radius:var(--radius); border:1px solid var(--border);">
+                    <span style="font-size:1.5rem;">📞</span>
+                    <div>
+                        <strong style="display:block;color:var(--text-dark);">Téléphone</strong>
+                        <span style="color:var(--text-muted);font-size:0.9rem;">+221 XX XXX XX XX</span>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:1rem; padding:1.25rem; background:var(--bg-section); border-radius:var(--radius); border:1px solid var(--border);">
+                    <span style="font-size:1.5rem;">📍</span>
+                    <div>
+                        <strong style="display:block;color:var(--text-dark);">Adresse</strong>
+                        <span style="color:var(--text-muted);font-size:0.9rem;">Dakar, Sénégal</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-col">
+                <div class="footer-logo">🎓 SK ACADEMIA</div>
+                <p>Fascicules numériques, cours vidéo, et formations en informatique de qualité pour exceller aux concours sénégalais.</p>
+                <div class="footer-socials">
+                    <a href="#">📘</a>
+                    <a href="#">📸</a>
+                    <a href="#">💬</a>
+                    <a href="#">▶️</a>
+                </div>
+            </div>
+            <div class="footer-col">
+                <h4>Accueil</h4>
+                <a href="#accueil">Accueil</a>
+                <a href="#boutique">Boutique</a>
+                <a href="#concours">Préparation concours</a>
+                <a href="#formations">Formations</a>
+                <a href="#contact">Contact</a>
+            </div>
+            <div class="footer-col">
+                <h4>Formations</h4>
+                <a href="#">Concours</a>
+                <a href="#">Formations Informatique</a>
+                <a href="#">Préparation concours</a>
+                <a href="#">Print</a>
+                <a href="#">Complètes</a>
+            </div>
+            <div class="footer-col">
+                <h4>Contact</h4>
+                <p>📧 contact@skacademia.sn</p>
+                <p>📞 +221 XX XXX XX XX</p>
+                <p>📍 Dakar, Sénégal</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2026 SK ACADEMIA — Tous droits réservés | Excellence Académique au Sénégal 🇸🇳</p>
+        </div>
+    </footer>
+
+    <!-- WHATSAPP FLOAT BUTTON -->
+    <a href="https://wa.me/221XXXXXXXXX" class="whatsapp-float" target="_blank" aria-label="Contactez-nous sur WhatsApp">
+        💬
+    </a>
+
+    <!-- BACK TO TOP -->
+    <button class="back-to-top" id="backToTop" aria-label="Retour en haut">↑</button>
+
+    <!-- TOAST -->
+    <div class="toast" id="toast">
+        <span id="toastIcon">✅</span>
+        <span id="toastMsg">Produit ajouté au panier !</span>
+    </div>
+
+    <!-- LOCKED CONTENT OVERLAY (shown on gated sections when not logged in) -->
+    <template id="lockedTemplate">
+        <div class="locked-overlay">
+            <div class="locked-content">
+                <div class="locked-icon">🔒</div>
+                <h3>Contenu Réservé aux Membres</h3>
+                <p>Connectez-vous ou créez un compte pour accéder à cette section</p>
+                <button class="btn-primary" onclick="openAuthModal()">Se Connecter →</button>
+            </div>
+        </div>
+    </template>
+
+    <!-- CHATBOT SK ASSISTANT -->
+    <div class="chatbot-toggler" id="chatbotToggler">
+        🤖
+    </div>
+    <div class="chatbot-window" id="chatbotWindow">
+        <div class="chatbot-header">
+            <h4>🤖 Assistant SK</h4>
+            <button id="chatbotClose">✕</button>
+        </div>
+        <div class="chatbot-body" id="chatbotBody">
+            <div class="chatbot-msg bot">
+                Bonjour ! Je suis l'assistant IA de SK ACADEMIA. Comment puis-je vous aider avec les concours aujourd'hui ?
+            </div>
+        </div>
+        <div class="chatbot-footer">
+            <input type="text" id="chatbotInput" placeholder="Posez votre question...">
+            <button id="chatbotSend">Envoyer</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
