@@ -1573,8 +1573,11 @@ ul { list-style: none; }
 .course-header { padding: 1.5rem; border-bottom: 1px solid var(--border); }
 .course-header h3 { font-family: var(--font-head); font-size: 1.25rem; color: var(--blue-deep); margin-top: 1rem; }
 .course-module { border-bottom: 1px solid var(--border); }
-.course-module-title { padding: 1.25rem 1.5rem; font-weight: 700; color: var(--text-dark); background: var(--bg-section); cursor: pointer; }
-.course-lesson { padding: 1rem 1.5rem 1rem 2.5rem; font-size: 0.9rem; color: var(--text-body); border-bottom: 1px solid var(--border); cursor: pointer; transition: var(--transition); }
+.course-module-title { padding: 1.25rem 1.5rem; font-weight: 700; color: var(--text-dark); background: var(--bg-section); cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+.course-module-title::after { content: '▼'; font-size: 0.75rem; transition: transform 0.3s; }
+.course-module.active .course-module-title::after { transform: rotate(-180deg); }
+.course-lesson { padding: 1rem 1.5rem 1rem 2.5rem; font-size: 0.9rem; color: var(--text-body); border-bottom: 1px solid var(--border); cursor: pointer; transition: var(--transition); display: none; }
+.course-module.active .course-lesson { display: block; animation: fadeIn 0.3s ease; }
 .course-lesson:hover { background: var(--blue-pale); color: var(--blue-accent); }
 .course-lesson.active { background: var(--blue-pale); color: var(--blue-accent); font-weight: 600; border-left: 4px solid var(--orange); }
 

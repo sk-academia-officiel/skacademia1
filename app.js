@@ -1128,3 +1128,69 @@ if (chatbotToggler && chatbotWindow) {
         if (e.key === "Enter") handleChatbotSend();
     });
 }
+
+// ==================
+//  DASHBOARD TABS
+// ==================
+document.querySelectorAll(".dash-nav-btn[data-tab]").forEach(btn => {
+    btn.addEventListener("click", () => {
+        // Remove active from all nav buttons
+        document.querySelectorAll(".dash-nav-btn").forEach(b => b.classList.remove("active"));
+        // Add active to clicked
+        btn.classList.add("active");
+
+        // Hide all tabs
+        document.querySelectorAll(".dash-tab").forEach(tab => tab.classList.remove("active"));
+        // Show target tab
+        const targetId = btn.getAttribute("data-tab");
+        const targetTab = document.getElementById(targetId);
+        if (targetTab) {
+            targetTab.classList.add("active");
+        }
+    });
+});
+
+// ==================
+//  COURSE PLAYER UI
+// ==================
+document.querySelectorAll(".course-module-title").forEach(title => {
+    title.addEventListener("click", () => {
+        const module = title.parentElement;
+        module.classList.toggle("active");
+        
+        // Simple accordion logic (optional): close others
+        /* document.querySelectorAll(".course-module").forEach(m => {
+            if (m !== module) m.classList.remove("active");
+        }); */
+    });
+});
+
+document.querySelectorAll(".course-lesson").forEach(lesson => {
+    lesson.addEventListener("click", () => {
+        document.querySelectorAll(".course-lesson").forEach(l => l.classList.remove("active"));
+        lesson.classList.add("active");
+        
+        // Update video placeholder title
+        const videoTitle = document.querySelector(".course-video-placeholder span");
+        const lessonText = lesson.textContent.replace(/▶️|📄/g, "").trim();
+        if (videoTitle) videoTitle.textContent = lessonText;
+        
+        const contentInfoTitle = document.querySelector(".course-content-info h2");
+        if (contentInfoTitle) contentInfoTitle.textContent = "Chapitre : " + lessonText;
+    });
+});
+
+// Update navigateTo buttons to also update history
+document.querySelectorAll("button[onclick^='navigateTo']").forEach(btn => {
+    const originalOnclick = btn.getAttribute("onclick");
+    // Extract target ID. e.g. navigateTo('#course') -> #course
+    const match = originalOnclick.match(/navigateTo\('([^']*)'\)/);
+    if (match && match[1]) {
+        btn.removeAttribute("onclick");
+        btn.addEventListener("click", (e) => {
+            e.preventDefault();
+            history.pushState(null, null, match[1]);
+            navigateTo(match[1]);
+        });
+    }
+});
