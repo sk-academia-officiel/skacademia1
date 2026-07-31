@@ -3,265 +3,141 @@
    Logique complète : catalogue, panier, quiz
    ============================================ */
 
+/* ============================================
+   🔒 MODULE SÉCURITÉ — SK ACADEMIA
+   ============================================ */
+
+// ---- XSS SANITIZATION ----
+const sanitizeHTML = (str) => {
+    if (typeof str !== 'string') return '';
+    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;', '/': '&#x2F;' };
+    return str.replace(/[&<>"'/]/g, c => map[c]);
+};
+
+// ---- SHA-256 PASSWORD HASHING ----
+const hashPassword = async (password) => {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password + '_SK_ACADEMIA_SALT_2026');
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+};
+
+// Pre-computed hash of "ADMIN2508" with salt (generated once)
+// To regenerate: hashPassword("ADMIN2508").then(h => console.log(h))
+const ADMIN_PASSWORD_HASH = null; // Will be computed at startup
+let _adminHashCache = null;
+
+const getAdminHash = async () => {
+    if (_adminHashCache) return _adminHashCache;
+    _adminHashCache = await hashPassword("ADMIN2508");
+    return _adminHashCache;
+};
+
+// ---- RATE LIMITING (ANTI BRUTE-FORCE) ----
+const RATE_LIMIT = {
+    maxAttempts: 5,
+    lockoutDuration: 2 * 60 * 1000, // 2 minutes in ms
+    attempts: 0,
+    lockoutUntil: 0
+};
+
+const isLoginLocked = () => {
+    if (RATE_LIMIT.lockoutUntil && Date.now() < RATE_LIMIT.lockoutUntil) {
+        const remaining = Math.ceil((RATE_LIMIT.lockoutUntil - Date.now()) / 1000);
+        return remaining;
+    }
+    if (RATE_LIMIT.lockoutUntil && Date.now() >= RATE_LIMIT.lockoutUntil) {
+        RATE_LIMIT.attempts = 0;
+        RATE_LIMIT.lockoutUntil = 0;
+    }
+    return 0;
+};
+
+const recordFailedLogin = () => {
+    RATE_LIMIT.attempts++;
+    if (RATE_LIMIT.attempts >= RATE_LIMIT.maxAttempts) {
+        RATE_LIMIT.lockoutUntil = Date.now() + RATE_LIMIT.lockoutDuration;
+        RATE_LIMIT.attempts = 0;
+        return true; // locked
+    }
+    return false;
+};
+
+const resetLoginAttempts = () => {
+    RATE_LIMIT.attempts = 0;
+    RATE_LIMIT.lockoutUntil = 0;
+};
+
+// ---- SESSION TIMEOUT (30 MINUTES) ----
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+let sessionTimer = null;
+
+const updateLastActivity = () => {
+    localStorage.setItem('sk_last_activity', Date.now().toString());
+};
+
+const checkSessionTimeout = () => {
+    const lastActivity = parseInt(localStorage.getItem('sk_last_activity') || '0');
+    const currentUser = localStorage.getItem('sk_academia_current_user');
+    if (currentUser && lastActivity && (Date.now() - lastActivity > SESSION_TIMEOUT_MS)) {
+        localStorage.removeItem('sk_academia_current_user');
+        localStorage.removeItem('sk_last_activity');
+        if (typeof updateAuthUI === 'function') updateAuthUI();
+        if (typeof updateGatedSections === 'function') updateGatedSections();
+        if (typeof showToast === 'function') showToast('⏰', 'Session expirée. Veuillez vous reconnecter pour votre sécurité.');
+        return true;
+    }
+    return false;
+};
+
+// Track user activity for session timeout
+['click', 'keydown', 'mousemove', 'scroll', 'touchstart'].forEach(evt => {
+    document.addEventListener(evt, () => {
+        if (localStorage.getItem('sk_academia_current_user')) {
+            updateLastActivity();
+        }
+    }, { passive: true });
+});
+
+// Check session every 60 seconds
+setInterval(checkSessionTimeout, 60 * 1000);
+
+// ---- ANTI DEVTOOLS & RIGHT-CLICK PROTECTION ----
+document.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+});
+
+document.addEventListener('keydown', (e) => {
+    // Block F12
+    if (e.key === 'F12') { e.preventDefault(); return false; }
+    // Block Ctrl+Shift+I (DevTools)
+    if (e.ctrlKey && e.shiftKey && e.key === 'I') { e.preventDefault(); return false; }
+    // Block Ctrl+Shift+J (Console)
+    if (e.ctrlKey && e.shiftKey && e.key === 'J') { e.preventDefault(); return false; }
+    // Block Ctrl+U (View Source)
+    if (e.ctrlKey && e.key === 'u') { e.preventDefault(); return false; }
+    // Block Ctrl+Shift+C (Inspect Element)
+    if (e.ctrlKey && e.shiftKey && e.key === 'C') { e.preventDefault(); return false; }
+});
+
+// ---- INPUT VALIDATION HELPERS ----
+const isValidEmail = (email) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+};
+
+const isStrongPassword = (password) => {
+    // At least 6 chars, 1 uppercase, 1 number
+    return password.length >= 6 && /[A-Z]/.test(password) && /[0-9]/.test(password);
+};
+
+/* ============================================
+   END SECURITY MODULE
+   ============================================ */
+
 // ============================
 //  BASE DE DONNÉES — PRODUITS
-// ============================
-const PRODUCTS = [
-    // ADMINISTRATION & JUSTICE
-    {
-        id: 1, type: "fascicule", category: "administration",
-        icon: "📋", bg: "bg-admin", catLabel: "cat-lbl-admin",
-        catName: "Administration & Justice",
-        title: "Fascicule Complet — Concours ENA Sénégal",
-        desc: "Toutes les matières : culture générale, droit administratif, économie, rédaction administrative.",
-        price: 12000,
-        typeName: "Fascicule"
-    },
-    {
-        id: 2, type: "annale", category: "administration",
-        icon: "📜", bg: "bg-admin", catLabel: "cat-lbl-admin",
-        catName: "Administration & Justice",
-        title: "Annales Corrigées ENA — 10 ans",
-        desc: "10 années d'annales corrigées avec méthodologie et conseils de réussite.",
-        price: 8000,
-        typeName: "Annale"
-    },
-    {
-        id: 3, type: "fascicule", category: "administration",
-        icon: "⚖️", bg: "bg-admin", catLabel: "cat-lbl-admin",
-        catName: "Administration & Justice",
-        title: "Fascicule Concours Magistrat",
-        desc: "Procédure pénale, procédure civile, droit constitutionnel et questions d'actualité juridique.",
-        price: 15000,
-        typeName: "Fascicule"
-    },
-    {
-        id: 4, type: "cours", category: "administration",
-        icon: "📖", bg: "bg-admin", catLabel: "cat-lbl-admin",
-        catName: "Administration & Justice",
-        title: "Cours PDF — Droit Administratif Sénégalais",
-        desc: "Cours complet et structuré pour maîtriser le droit administratif national.",
-        price: 5000,
-        typeName: "Cours PDF"
-    },
-    {
-        id: 5, type: "fascicule", category: "administration",
-        icon: "🗂️", bg: "bg-admin", catLabel: "cat-lbl-admin",
-        catName: "Administration & Justice",
-        title: "Pack CREM — Toutes Spécialités",
-        desc: "Pack complet pour le CREM : cours, fiches, annales et exercices pour toutes les spécialités.",
-        price: 18000,
-        typeName: "Pack"
-    },
-    {
-        id: 6, type: "fascicule", category: "administration",
-        icon: "⚖️", bg: "bg-admin", catLabel: "cat-lbl-admin",
-        catName: "Administration & Justice",
-        title: "Fascicule Concours Greffier",
-        desc: "Préparation ciblée : organisation judiciaire, procédure, culture juridique et rédaction.",
-        price: 10000,
-        typeName: "Fascicule"
-    },
-
-    // SÉCURITÉ & DÉFENSE
-    {
-        id: 7, type: "fascicule", category: "securite",
-        icon: "👮", bg: "bg-secu", catLabel: "cat-lbl-secu",
-        catName: "Sécurité & Défense",
-        title: "Fascicule — Concours Police Nationale",
-        desc: "Culture générale, dictée, QCM logique, math, et préparation aux épreuves physiques.",
-        price: 10000,
-        typeName: "Fascicule"
-    },
-    {
-        id: 8, type: "annale", category: "securite",
-        icon: "📜", bg: "bg-secu", catLabel: "cat-lbl-secu",
-        catName: "Sécurité & Défense",
-        title: "Annales Police Nationale — 8 ans",
-        desc: "8 années d'épreuves corrigées avec les critères de notation officiels.",
-        price: 7000,
-        typeName: "Annale"
-    },
-    {
-        id: 9, type: "fascicule", category: "securite",
-        icon: "🪖", bg: "bg-secu", catLabel: "cat-lbl-secu",
-        catName: "Sécurité & Défense",
-        title: "Fascicule — Concours Gendarmerie Nationale",
-        desc: "Préparation complète pour la gendarmerie : épreuves écrites et guide physique.",
-        price: 10000,
-        typeName: "Fascicule"
-    },
-    {
-        id: 10, type: "fascicule", category: "securite",
-        icon: "🛃", bg: "bg-secu", catLabel: "cat-lbl-secu",
-        catName: "Sécurité & Défense",
-        title: "Fascicule — Concours Douanes Sénégalaises",
-        desc: "Économie, droit douanier, mathématiques et culture générale pour les douanes.",
-        price: 12000,
-        typeName: "Fascicule"
-    },
-    {
-        id: 11, type: "fascicule", category: "securite",
-        icon: "⭐", bg: "bg-secu", catLabel: "cat-lbl-secu",
-        catName: "Sécurité & Défense",
-        title: "Fascicule — Concours ENSOA",
-        desc: "Toutes les épreuves de l'ENSOA : sciences, mathématiques, culture générale et discipline militaire.",
-        price: 10000,
-        typeName: "Fascicule"
-    },
-    {
-        id: 12, type: "cours", category: "securite",
-        icon: "📖", bg: "bg-secu", catLabel: "cat-lbl-secu",
-        catName: "Sécurité & Défense",
-        title: "Cours PDF — Culture Générale Sécurité",
-        desc: "Cours de culture générale axé sur les thèmes abordés dans les concours de la sécurité.",
-        price: 4000,
-        typeName: "Cours PDF"
-    },
-
-    // SANTÉ & SOCIAL
-    {
-        id: 13, type: "fascicule", category: "sante",
-        icon: "🤱", bg: "bg-sante", catLabel: "cat-lbl-sante",
-        catName: "Santé & Social",
-        title: "Fascicule — Concours Sage-femme",
-        desc: "Biologie, chimie, sciences naturelles, physique et test psychotechnique pour le concours sage-femme.",
-        price: 12000,
-        typeName: "Fascicule"
-    },
-    {
-        id: 14, type: "annale", category: "sante",
-        icon: "📜", bg: "bg-sante", catLabel: "cat-lbl-sante",
-        catName: "Santé & Social",
-        title: "Annales Corrigées — Concours Sage-femme",
-        desc: "5 années d'annales avec corrections détaillées et barèmes officiels.",
-        price: 7000,
-        typeName: "Annale"
-    },
-    {
-        id: 15, type: "fascicule", category: "sante",
-        icon: "🏃", bg: "bg-sante", catLabel: "cat-lbl-sante",
-        catName: "Santé & Social",
-        title: "Fascicule — Concours INSEPS",
-        desc: "Sciences de l'éducation physique, biologie humaine, anatomie et culture générale.",
-        price: 10000,
-        typeName: "Fascicule"
-    },
-    {
-        id: 16, type: "fascicule", category: "sante",
-        icon: "🏥", bg: "bg-sante", catLabel: "cat-lbl-sante",
-        catName: "Santé & Social",
-        title: "Fascicule — Concours UDES",
-        desc: "Préparation ciblée pour le concours UDES avec toutes les matières au programme.",
-        price: 10000,
-        typeName: "Fascicule"
-    },
-
-    // GRANDES ÉCOLES
-    {
-        id: 17, type: "fascicule", category: "grandes-ecoles",
-        icon: "📐", bg: "bg-ecole", catLabel: "cat-lbl-ecole",
-        catName: "Grandes Écoles",
-        title: "Fascicule — Polytechnique de Thiès (EPT)",
-        desc: "Mathématiques, physique, chimie et problèmes de sciences de l'ingénieur. Niveau avancé.",
-        price: 18000,
-        typeName: "Fascicule"
-    },
-    {
-        id: 18, type: "annale", category: "grandes-ecoles",
-        icon: "📜", bg: "bg-ecole", catLabel: "cat-lbl-ecole",
-        catName: "Grandes Écoles",
-        title: "Annales EPT — Mathématiques & Physique",
-        desc: "10 ans d'épreuves corrigées de mathématiques et physique pour l'EPT.",
-        price: 12000,
-        typeName: "Annale"
-    },
-    {
-        id: 19, type: "fascicule", category: "grandes-ecoles",
-        icon: "🏗️", bg: "bg-ecole", catLabel: "cat-lbl-ecole",
-        catName: "Grandes Écoles",
-        title: "Fascicule — Polytechnique de Dakar (ESP)",
-        desc: "Préparation complète pour l'ESP : maths, physique, chimie et informatique.",
-        price: 18000,
-        typeName: "Fascicule"
-    },
-    {
-        id: 20, type: "cours", category: "grandes-ecoles",
-        icon: "📖", bg: "bg-ecole", catLabel: "cat-lbl-ecole",
-        catName: "Grandes Écoles",
-        title: "Cours PDF — Mathématiques Niveau Concours",
-        desc: "Algèbre, analyse, probabilités et géométrie au niveau des concours de grandes écoles.",
-        price: 8000,
-        typeName: "Cours PDF"
-    },
-
-    // ENSEIGNEMENT
-    {
-        id: 21, type: "fascicule", category: "enseignement",
-        icon: "📚", bg: "bg-teach", catLabel: "cat-lbl-teach",
-        catName: "Enseignement",
-        title: "Pack FASTEF — Toutes Spécialités",
-        desc: "Préparation complète au concours FASTEF : toutes les spécialités couvertes avec cours et exercices.",
-        price: 20000,
-        typeName: "Pack"
-    },
-    {
-        id: 22, type: "fascicule", category: "enseignement",
-        icon: "🧮", bg: "bg-teach", catLabel: "cat-lbl-teach",
-        catName: "Enseignement",
-        title: "Fascicule FASTEF — Mathématiques",
-        desc: "Spécialité maths : cours, exercices et annales pour le concours FASTEF.",
-        price: 10000,
-        typeName: "Fascicule"
-    },
-    {
-        id: 23, type: "fascicule", category: "enseignement",
-        icon: "🔤", bg: "bg-teach", catLabel: "cat-lbl-teach",
-        catName: "Enseignement",
-        title: "Fascicule FASTEF — Lettres & Français",
-        desc: "Spécialité lettres : grammaire, littérature, composition et rédaction pédagogique.",
-        price: 10000,
-        typeName: "Fascicule"
-    },
-    {
-        id: 24, type: "cours", category: "enseignement",
-        icon: "📖", bg: "bg-teach", catLabel: "cat-lbl-teach",
-        catName: "Enseignement",
-        title: "Cours PDF — Méthodologie Pédagogique",
-        desc: "Fiches de préparation de leçons, techniques d'enseignement et outils didactiques.",
-        price: 5000,
-        typeName: "Cours PDF"
-    },
-
-    // FORMATIONS DIGITALES
-    {
-        id: 25, type: "formation", category: "formation",
-        icon: "💻", bg: "bg-form", catLabel: "cat-lbl-form",
-        catName: "Formations Digitales",
-        title: "Formation — Maîtriser l'IA en 2026",
-        desc: "ChatGPT, Gemini, Copilot, automatisation, prompting avancé et cas pratiques pour professionnels.",
-        price: 50000,
-        typeName: "Formation"
-    },
-    {
-        id: 26, type: "formation", category: "formation",
-        icon: "🌐", bg: "bg-form", catLabel: "cat-lbl-form",
-        catName: "Formations Digitales",
-        title: "Formation — Développeur Web Full-Stack",
-        desc: "HTML, CSS, JavaScript, Node.js, base de données et déploiement de A à Z.",
-        price: 75000,
-        typeName: "Formation"
-    },
-    {
-        id: 27, type: "formation", category: "formation",
-        icon: "📊", bg: "bg-form", catLabel: "cat-lbl-form",
-        catName: "Formations Digitales",
-        title: "Formation — Excel & Bureautique Avancée",
-        desc: "Excel, Word, PowerPoint et outils Google Workspace pour la productivité professionnelle.",
-        price: 25000,
-        typeName: "Formation"
-    },
-];
+// Base de données chargée via loadDatabase()
 
 // Formations display data
 const FORMATIONS = [
@@ -356,7 +232,8 @@ const ROUTES = {
     "about": ["about", "services"],       // A Propos affiche aussi les services
     "contact": ["contact"],
     "dashboard": ["dashboard"],           // NEW: Espace étudiant
-    "course": ["course"]                  // NEW: Course player
+    "course": ["course"],                 // NEW: Course player
+    "admin": ["admin"]                    // NEW: Espace Admin
 };
 
 const navigateTo = (hash) => {
@@ -407,9 +284,9 @@ const navigateTo = (hash) => {
 document.addEventListener("click", (e) => {
     const link = e.target.closest("a[href^='#']");
     if (link) {
+        e.preventDefault();
         const href = link.getAttribute("href");
         if (href !== "#") {
-            e.preventDefault();
             history.pushState(null, null, href);
             navigateTo(href);
         }
@@ -458,6 +335,9 @@ const openCartSidebar = () => {
 const closeCartSidebar = () => {
     cartSidebar.classList.remove("open");
     cartOverlay.classList.remove("show");
+    if (cart.length > 0 && typeof recordAbandonedCart === 'function') {
+        recordAbandonedCart(cart);
+    }
 };
 
 cartToggle.addEventListener("click", openCartSidebar);
@@ -518,16 +398,17 @@ const addToCart = (id) => {
 //  TOAST
 // ==================
 let toastTimer;
-const showToast = (icon = "✅", msg = "Action effectuée") => {
-    toastIcon.textContent = icon;
-    toastMsg.textContent = msg;
+const showToast = (icon = "✅", msg = "Action effectuée", duration = 3500) => {
+    if (!toast) return;
+    if (toastIcon) toastIcon.textContent = icon;
+    if (toastMsg) toastMsg.textContent = msg;
     toast.classList.add("show");
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toast.classList.remove("show"), 3500);
+    toastTimer = setTimeout(() => toast.classList.remove("show"), duration);
 };
 
 // ==================
-//  PAYMENT SIMULATION
+//  PAYMENT SIMULATION & USER PURCHASES
 // ==================
 const simulatePayment = (method) => {
     const user = getCurrentUser();
@@ -546,9 +427,32 @@ const simulatePayment = (method) => {
     showToast("⏳", `Initialisation du paiement ${method}... Veuillez confirmer sur votre téléphone.`, 5000);
     
     setTimeout(() => {
+        // Save items to user's purchases
+        if (!user.purchases) user.purchases = [];
+        const dateStr = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+        
+        cart.forEach(item => {
+            user.purchases.push({
+                ...item,
+                purchasedAt: dateStr,
+                progress: 15
+            });
+        });
+        
+        // Update user session and local database
+        setCurrentUser(user);
+        const users = getUsers();
+        const uIdx = users.findIndex(u => u.email === user.email);
+        if (uIdx > -1) {
+            users[uIdx] = user;
+            saveUsers(users);
+        }
+
         cart = []; // Empty cart
         renderCart();
         closeCartSidebar();
+        renderStudentDashboard();
+        
         showToast("✅", `Paiement ${method} réussi ! Retrouvez vos achats dans votre Dashboard.`);
         
         // Redirect to dashboard after a delay
@@ -560,7 +464,7 @@ const simulatePayment = (method) => {
 };
 
 // ==================
-//  RENDER PRODUCTS
+//  RENDER PRODUCTS & DEFAULT DATASET
 // ==================
 const CAT_IMAGES = {
     "administration": "https://images.unsplash.com/photo-1589829085413-56de8ae18c73?q=80&w=600&auto=format&fit=crop", 
@@ -570,23 +474,308 @@ const CAT_IMAGES = {
     "enseignement": "https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?q=80&w=600&auto=format&fit=crop", 
     "formation": "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=600&auto=format&fit=crop", 
 };
-PRODUCTS.forEach(p => p.image = CAT_IMAGES[p.category] || "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?q=80&w=600&auto=format&fit=crop");
+
+const DEFAULT_PRODUCTS = [
+  { id: 1, type: "fascicule", category: "administration", icon: "📋", bg: "bg-admin", catLabel: "cat-lbl-admin", catName: "Administration & Justice", title: "Fascicule Complet — Concours ENA Sénégal", desc: "Toutes les matières : culture générale, droit administratif, économie, rédaction administrative.", price: 12000, typeName: "Fascicule" },
+  { id: 2, type: "annale", category: "administration", icon: "📜", bg: "bg-admin", catLabel: "cat-lbl-admin", catName: "Administration & Justice", title: "Annales Corrigées ENA — 10 ans", desc: "10 années d'annales corrigées avec méthodologie et conseils de réussite.", price: 8000, typeName: "Annale" },
+  { id: 3, type: "fascicule", category: "administration", icon: "⚖️", bg: "bg-admin", catLabel: "cat-lbl-admin", catName: "Administration & Justice", title: "Fascicule Concours Magistrat", desc: "Procédure pénale, procédure civile, droit constitutionnel et questions d'actualité juridique.", price: 15000, typeName: "Fascicule" },
+  { id: 4, type: "cours", category: "administration", icon: "📖", bg: "bg-admin", catLabel: "cat-lbl-admin", catName: "Administration & Justice", title: "Cours PDF — Droit Administratif Sénégalais", desc: "Cours complet et structuré pour maîtriser le droit administratif national.", price: 5000, typeName: "Cours PDF" },
+  { id: 5, type: "fascicule", category: "administration", icon: "🗂️", bg: "bg-admin", catLabel: "cat-lbl-admin", catName: "Administration & Justice", title: "Pack CREM — Toutes Spécialités", desc: "Pack complet pour le CREM : cours, fiches, annales et exercices pour toutes les spécialités.", price: 18000, typeName: "Pack" },
+  { id: 6, type: "fascicule", category: "administration", icon: "⚖️", bg: "bg-admin", catLabel: "cat-lbl-admin", catName: "Administration & Justice", title: "Fascicule Concours Greffier", desc: "Préparation ciblée : organisation judiciaire, procédure, culture juridique et rédaction.", price: 10000, typeName: "Fascicule" },
+  { id: 7, type: "fascicule", category: "securite", icon: "👮", bg: "bg-secu", catLabel: "cat-lbl-secu", catName: "Sécurité & Défense", title: "Fascicule — Concours Police Nationale", desc: "Culture générale, dictée, QCM logique, math, et préparation aux épreuves physiques.", price: 10000, typeName: "Fascicule" },
+  { id: 8, type: "annale", category: "securite", icon: "📜", bg: "bg-secu", catLabel: "cat-lbl-secu", catName: "Sécurité & Défense", title: "Annales Police Nationale — 8 ans", desc: "8 années d'épreuves corrigées avec les critères de notation officiels.", price: 7000, typeName: "Annale" },
+  { id: 9, type: "fascicule", category: "securite", icon: "🪖", bg: "bg-secu", catLabel: "cat-lbl-secu", catName: "Sécurité & Défense", title: "Fascicule — Concours Gendarmerie Nationale", desc: "Préparation complète pour la gendarmerie : épreuves écrites et guide physique.", price: 10000, typeName: "Fascicule" },
+  { id: 10, type: "fascicule", category: "securite", icon: "🛃", bg: "bg-secu", catLabel: "cat-lbl-secu", catName: "Sécurité & Défense", title: "Fascicule — Concours Douanes Sénégalaises", desc: "Économie, droit douanier, mathématiques et culture générale pour les douanes.", price: 12000, typeName: "Fascicule" },
+  { id: 11, type: "fascicule", category: "securite", icon: "⭐", bg: "bg-secu", catLabel: "cat-lbl-secu", catName: "Sécurité & Défense", title: "Fascicule — Concours ENSOA", desc: "Toutes les épreuves de l'ENSOA : sciences, mathématiques, culture générale et discipline militaire.", price: 10000, typeName: "Fascicule" },
+  { id: 12, type: "cours", category: "securite", icon: "📖", bg: "bg-secu", catLabel: "cat-lbl-secu", catName: "Sécurité & Défense", title: "Cours PDF — Culture Générale Sécurité", desc: "Cours de culture générale axé sur les thèmes abordés dans les concours de la sécurité.", price: 4000, typeName: "Cours PDF" },
+  { id: 13, type: "fascicule", category: "sante", icon: "🤱", bg: "bg-sante", catLabel: "cat-lbl-sante", catName: "Santé & Social", title: "Fascicule — Concours Sage-femme", desc: "Biologie, chimie, sciences naturelles, physique et test psychotechnique pour le concours sage-femme.", price: 12000, typeName: "Fascicule" },
+  { id: 14, type: "annale", category: "sante", icon: "📜", bg: "bg-sante", catLabel: "cat-lbl-sante", catName: "Santé & Social", title: "Annales Corrigées — Concours Sage-femme", desc: "5 années d'annales avec corrections détaillées et barèmes officiels.", price: 7000, typeName: "Annale" },
+  { id: 15, type: "fascicule", category: "sante", icon: "🏃", bg: "bg-sante", catLabel: "cat-lbl-sante", catName: "Santé & Social", title: "Fascicule — Concours INSEPS", desc: "Sciences de l'éducation physique, biologie humaine, anatomie et culture générale.", price: 10000, typeName: "Fascicule" },
+  { id: 16, type: "fascicule", category: "sante", icon: "🩺", bg: "bg-sante", catLabel: "cat-lbl-sante", catName: "Santé & Social", title: "Fascicule — Concours UDES (Santé)", desc: "Sciences fondamentales, biologie et culture sanitaire pour le concours UDES.", price: 9000, typeName: "Fascicule" },
+  { id: 17, type: "fascicule", category: "grandes-ecoles", icon: "📐", bg: "bg-ecoles", catLabel: "cat-lbl-ecoles", catName: "Grandes Écoles", title: "Fascicule Concours EPT (Polytechnique Thiès)", desc: "Mathématiques approfondies, physique-chimie et logique scientifique.", price: 15000, typeName: "Fascicule" },
+  { id: 18, type: "annale", category: "grandes-ecoles", icon: "📜", bg: "bg-ecoles", catLabel: "cat-lbl-ecoles", catName: "Grandes Écoles", title: "Annales Corrigées EPT — 7 ans", desc: "7 ans de sujets d'épreuves de Polytechnique Thiès entièrement résolus.", price: 9000, typeName: "Annale" },
+  { id: 19, type: "fascicule", category: "grandes-ecoles", icon: "⚡", bg: "bg-ecoles", catLabel: "cat-lbl-ecoles", catName: "Grandes Écoles", title: "Fascicule Concours ESP Dakar", desc: "Préparation aux filières d'ingénieur et de technologie de l'École Supérieure Polytechnique.", price: 14000, typeName: "Fascicule" },
+  { id: 20, type: "fascicule", category: "enseignement", icon: "📚", bg: "bg-ens", catLabel: "cat-lbl-ens", catName: "Enseignement", title: "Fascicule FASTEF — Spécialité Lettres & Sciences Humaines", desc: "Dissertation pédagogique, linguistique, littérature et épreuves professionnelles.", price: 12000, typeName: "Fascicule" },
+  { id: 21, type: "fascicule", category: "enseignement", icon: "🧪", bg: "bg-ens", catLabel: "cat-lbl-ens", catName: "Enseignement", title: "Fascicule FASTEF — Spécialité Sciences (Maths/PC/SVT)", desc: "Épreuves académiques et méthodologie de la leçon d'essai.", price: 12000, typeName: "Fascicule" },
+  { id: 22, type: "annale", category: "enseignement", icon: "📜", bg: "bg-ens", catLabel: "cat-lbl-ens", catName: "Enseignement", title: "Annales FASTEF Corrigées — Toutes spécialités", desc: "Annales récentes résolues avec grilles d'évaluation de la commission d'examen.", price: 8000, typeName: "Annale" },
+  { id: 23, type: "formation", category: "formation", icon: "🧠", bg: "bg-form", catLabel: "cat-lbl-form", catName: "Formations Informatique", title: "Formation IA Appliquée — Débutant à Expert", desc: "Maîtrisez ChatGPT, Midjourney et l'automatisation IA pour votre carrière.", price: 50000, typeName: "Formation" },
+  { id: 24, type: "formation", category: "formation", icon: "💻", bg: "bg-form", catLabel: "cat-lbl-form", catName: "Formations Informatique", title: "Formation Développement Web Modern", desc: "HTML, CSS, JavaScript & React de A à Z. Créez vos propres applications web.", price: 75000, typeName: "Formation" },
+  { id: 25, type: "formation", category: "formation", icon: "📊", bg: "bg-form", catLabel: "cat-lbl-form", catName: "Formations Informatique", title: "Formation Bureautique & Excel Avancé", desc: "Tableaux croisés dynamiques, formules complexes, VBA et mise en page professionnelle.", price: 25000, typeName: "Formation" }
+];
+
+// Initialize or Load state
+let PRODUCTS = [];
+
+const loadDatabase = async () => {
+    // Check if products exist in localStorage first to preserve admin additions
+    const savedLocal = localStorage.getItem('sk_products');
+    if (savedLocal) {
+        try {
+            PRODUCTS = JSON.parse(savedLocal);
+        } catch(e) { PRODUCTS = []; }
+    }
+
+    if (!PRODUCTS || PRODUCTS.length === 0) {
+        try {
+            const res = await fetch('database.json?ts=' + new Date().getTime());
+            if (!res.ok) throw new Error("Fichier introuvable");
+            PRODUCTS = await res.json();
+        } catch (e) {
+            PRODUCTS = DEFAULT_PRODUCTS;
+        }
+    }
+    
+    if (!PRODUCTS || PRODUCTS.length === 0) {
+        PRODUCTS = DEFAULT_PRODUCTS;
+    }
+
+    PRODUCTS.forEach(p => {
+        if (!p.image) p.image = CAT_IMAGES[p.category] || "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?q=80&w=600&auto=format&fit=crop";
+    });
+    
+    renderProducts();
+    if (typeof renderAdminProducts === 'function') renderAdminProducts();
+};
+
+// Helper to save products and re-render all interfaces
+const saveProducts = () => {
+    localStorage.setItem('sk_products', JSON.stringify(PRODUCTS));
+    renderProducts();
+    if (typeof renderAdminProducts === 'function') renderAdminProducts();
+};
+
+const exportDatabase = () => {
+    const dataStr = JSON.stringify(PRODUCTS, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "database.json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast("💾", "Fichier database.json prêt au téléchargement !");
+};
+window.exportDatabase = exportDatabase;
 
 const getFilteredProducts = () => {
     let list = PRODUCTS;
     if (currentFilter !== "all") {
-        list = list.filter(p => p.category === currentFilter || p.type === currentFilter);
+        if (currentFilter === "concours") {
+            list = list.filter(p => ["administration", "securite", "sante", "grandes-ecoles", "enseignement"].includes(p.category) || ["fascicule", "annale", "cours"].includes(p.type));
+        } else {
+            list = list.filter(p => p.category === currentFilter || p.type === currentFilter);
+        }
     }
     if (searchQuery) {
         const q = searchQuery.toLowerCase();
         list = list.filter(p =>
             p.title.toLowerCase().includes(q) ||
-            p.catName.toLowerCase().includes(q) ||
-            p.desc.toLowerCase().includes(q)
+            (p.catName && p.catName.toLowerCase().includes(q)) ||
+            (p.desc && p.desc.toLowerCase().includes(q)) ||
+            (p.typeName && p.typeName.toLowerCase().includes(q))
         );
     }
     return list;
 };
+
+// ==========================================
+//  DOCUMENT 10-PAGE PREVIEW ENGINE
+// ==========================================
+let currentPreviewProduct = null;
+let currentPreviewPage = 1;
+
+const openDocumentPreview = (productId) => {
+    const prod = PRODUCTS.find(p => p.id == productId);
+    if (!prod) return;
+
+    currentPreviewProduct = prod;
+    currentPreviewPage = 1;
+
+    const previewOverlay = document.getElementById("previewOverlay");
+    const previewModal = document.getElementById("previewModal");
+    const previewTitle = document.getElementById("previewTitle");
+    const previewCatLabel = document.getElementById("previewCatLabel");
+    const previewPriceText = document.getElementById("previewPriceText");
+
+    if (previewTitle) previewTitle.textContent = prod.title;
+    if (previewCatLabel) {
+        previewCatLabel.textContent = prod.catName || "Concours Sénégal";
+        previewCatLabel.className = `product-cat-label ${prod.catLabel || 'cat-lbl-admin'}`;
+    }
+    if (previewPriceText) previewPriceText.textContent = `Prix : ${formatPrice(prod.price)}`;
+
+    renderPreviewPage();
+
+    if (previewOverlay && previewModal) {
+        previewOverlay.classList.add("show");
+        previewModal.classList.add("show");
+        document.body.style.overflow = "hidden";
+    }
+};
+
+const closeDocumentPreview = () => {
+    const previewOverlay = document.getElementById("previewOverlay");
+    const previewModal = document.getElementById("previewModal");
+    if (previewOverlay && previewModal) {
+        previewOverlay.classList.remove("show");
+        previewModal.classList.remove("show");
+        document.body.style.overflow = "";
+    }
+};
+
+const renderPreviewPage = () => {
+    if (!currentPreviewProduct) return;
+    const prod = currentPreviewProduct;
+    const pageCounter = document.getElementById("pageCounter");
+    const previewDocBody = document.getElementById("previewDocBody");
+
+    if (pageCounter) pageCounter.textContent = `Page ${currentPreviewPage} sur 10`;
+
+    let pageHtml = "";
+    const title = prod.title || "Document d'Étude";
+
+    switch(currentPreviewPage) {
+        case 1:
+            pageHtml = `
+                <div style="text-align:center; padding:1.5rem 1rem; border:2px dashed var(--blue-accent); border-radius:10px; background:#f8fafc;">
+                    <div style="font-size:3rem; margin-bottom:0.75rem;">🎓</div>
+                    <h2 style="font-size:1.3rem; color:var(--blue-deep); margin-bottom:0.5rem;">${title}</h2>
+                    <p style="font-weight:600; color:var(--orange-dark); font-size:1rem; margin-bottom:0.75rem;">Fascicule Numérique &amp; Annales Officiel 🇸🇳</p>
+                    <div style="display:inline-block; background:var(--blue-deep); color:white; padding:0.35rem 0.9rem; border-radius:20px; font-size:0.8rem; font-weight:600;">ÉDITION SK ACADEMIA 2026</div>
+                </div>
+            `;
+            break;
+        case 2:
+            pageHtml = `
+                <h4 style="color:var(--blue-deep); border-bottom:2px solid var(--blue-accent); padding-bottom:0.3rem; margin-bottom:0.75rem;">TABLE DES MATIÈRES — EXTRAIT DE DÉMONSTRATION</h4>
+                <ul style="display:flex; flex-direction:column; gap:0.5rem; list-style:none; padding:0; font-size:0.85rem;">
+                    <li style="display:flex; justify-content:space-between; border-bottom:1px dashed var(--border); padding-bottom:0.25rem;"><span><strong>Chapitre I</strong> : Méthodologie &amp; Conseils des Examinateurs</span> <span>Page 3</span></li>
+                    <li style="display:flex; justify-content:space-between; border-bottom:1px dashed var(--border); padding-bottom:0.25rem;"><span><strong>Chapitre II</strong> : Synthèse du Cadre Réglementaire &amp; Culture Générale</span> <span>Page 5</span></li>
+                    <li style="display:flex; justify-content:space-between; border-bottom:1px dashed var(--border); padding-bottom:0.25rem;"><span><strong>Chapitre III</strong> : Sujets d'Examens &amp; QCM Corrigés</span> <span>Page 7</span></li>
+                    <li style="display:flex; justify-content:space-between; border-bottom:1px dashed var(--border); padding-bottom:0.25rem;"><span><strong>Chapitre IV</strong> : Exercices d'Entraînement Intensif</span> <span>Page 9</span></li>
+                </ul>
+            `;
+            break;
+        case 3:
+            pageHtml = `
+                <h4 style="color:var(--blue-deep); margin-bottom:0.5rem;">CHAPITRE I : Méthodologie &amp; Préparation</h4>
+                <p style="margin-bottom:0.75rem;">L'épreuve écrite du concours <strong>${title}</strong> nécessite une maîtrise parfaite de la structure et du vocabulaire professionnel.</p>
+                <div style="background:#f1f5f9; padding:0.75rem; border-left:4px solid var(--blue-accent); border-radius:4px; font-size:0.85rem;">
+                    <strong>💡 Recommandation de la Commission :</strong> Lisez l'intégralité du sujet avant de commencer la rédaction et soulignez les mots-clés directeurs.
+                </div>
+            `;
+            break;
+        case 4:
+            pageHtml = `
+                <h4 style="color:var(--blue-deep); margin-bottom:0.5rem;">1.2 Gestion du Temps &amp; Organisation</h4>
+                <p style="margin-bottom:0.5rem;">Pour réussir le concours dans les temps impartis :</p>
+                <ul style="padding-left:1.2rem; font-size:0.85rem; display:flex; flex-direction:column; gap:0.3rem;">
+                    <li>15 minutes : Analyse du sujet et élaboration du plan détaillé.</li>
+                    <li>2 heures : Remplissage et développement des arguments.</li>
+                    <li>15 minutes : Relecture attentive des accords et de la ponctuation.</li>
+                </ul>
+            `;
+            break;
+        case 5:
+            pageHtml = `
+                <h4 style="color:var(--blue-deep); margin-bottom:0.5rem;">CHAPITRE II : Notions Clés à Retenir</h4>
+                <p style="margin-bottom:0.5rem;">Fiche récapitulative des concepts indispensables pour la note de synthèse et les questions à réponse courte.</p>
+                <div style="background:#ecfdf5; border:1px solid #a7f3d0; padding:0.75rem; border-radius:6px; font-size:0.85rem; color:#065f46;">
+                    ✅ <strong>Rappel Important :</strong> La clarté de l'expression et la précision des exemples sont évaluées par un barème spécifique de 5 points sur 20.
+                </div>
+            `;
+            break;
+        case 6:
+            pageHtml = `
+                <h4 style="color:var(--blue-deep); margin-bottom:0.5rem;">Fiche Technique N°2</h4>
+                <p style="margin-bottom:0.5rem;">Synthèse des textes de référence et actualités des réformes institutionnelles et académiques au Sénégal.</p>
+            `;
+            break;
+        case 7:
+            pageHtml = `
+                <h4 style="color:var(--blue-deep); margin-bottom:0.5rem;">CHAPITRE III : Sujet Type Concours</h4>
+                <div style="padding:0.75rem; background:#f8fafc; border:1px solid var(--border); border-radius:6px; font-size:0.85rem;">
+                    <em>« En quoi la maîtrise des connaissances fondamentales et la rigueur d'analyse garantissent-elles la réussite aux concours ? »</em>
+                </div>
+            `;
+            break;
+        case 8:
+            pageHtml = `
+                <h4 style="color:var(--blue-deep); margin-bottom:0.5rem;">Série de QCM d'Auto-Évaluation :</h4>
+                <div style="display:flex; flex-direction:column; gap:0.4rem; font-size:0.85rem;">
+                    <div style="padding:0.5rem; border:1px solid var(--border); border-radius:4px;">Q1 : Quelle est la règle principale d'une bonne conclusion ?</div>
+                    <div style="padding:0.5rem; border:1px solid var(--border); border-radius:4px;">Q2 : Comment structurer l'ouverture dans un sujet de concours ?</div>
+                </div>
+            `;
+            break;
+        case 9:
+            pageHtml = `
+                <h4 style="color:var(--blue-deep); margin-bottom:0.5rem;">CHAPITRE IV : Corrigé Indicatif</h4>
+                <p style="font-size:0.85rem; color:var(--text-dark);">Aperçu de la grille de correction et des critères d'attribution des mentions d'excellence par le jury.</p>
+            `;
+            break;
+        case 10:
+            pageHtml = `
+                <div style="text-align:center; padding:1.25rem 0.5rem;">
+                    <div style="font-size:2.2rem; margin-bottom:0.4rem;">🔒</div>
+                    <h3 style="color:var(--orange-dark); margin-bottom:0.4rem;">Fin de l'Extrait Gratuit (Page 10 sur 10)</h3>
+                    <p style="margin-bottom:0.75rem; font-size:0.85rem;">Vous avez consulté les 10 premières pages gratuites de ce document.</p>
+                    <div style="background:#f1f5f9; padding:0.75rem; border-radius:6px; margin-bottom:0.75rem; border:1px dashed var(--blue-accent);">
+                        <strong style="color:var(--blue-deep); font-size:0.9rem;">Débloquez la totalité du document en effectuant votre achat dès maintenant !</strong>
+                    </div>
+                </div>
+            `;
+            break;
+    }
+
+    pageHtml += `
+        <div style="margin-top:1rem; text-align:center; font-size:0.75rem; color:var(--text-muted); border-top:1px solid var(--border); padding-top:0.4rem;">
+            📄 SK ACADEMIA — Aperçu Gratuit 10 Pages (Tous droits réservés)
+        </div>
+    `;
+
+    if (previewDocBody) previewDocBody.innerHTML = pageHtml;
+
+    const prevBtn = document.getElementById("prevPageBtn");
+    const nextBtn = document.getElementById("nextPageBtn");
+    if (prevBtn) prevBtn.disabled = (currentPreviewPage === 1);
+    if (nextBtn) nextBtn.disabled = (currentPreviewPage === 10);
+};
+
+window.openDocumentPreview = openDocumentPreview;
+window.closeDocumentPreview = closeDocumentPreview;
+
+// Attach preview modal event listeners
+document.addEventListener("DOMContentLoaded", () => {
+    const prevBtn = document.getElementById("prevPageBtn");
+    const nextBtn = document.getElementById("nextPageBtn");
+    const previewClose = document.getElementById("previewClose");
+    const previewOverlay = document.getElementById("previewOverlay");
+    const previewBuyBtn = document.getElementById("previewBuyBtn");
+
+    if (prevBtn) prevBtn.addEventListener("click", () => {
+        if (currentPreviewPage > 1) {
+            currentPreviewPage--;
+            renderPreviewPage();
+        }
+    });
+    if (nextBtn) nextBtn.addEventListener("click", () => {
+        if (currentPreviewPage < 10) {
+            currentPreviewPage++;
+            renderPreviewPage();
+        }
+    });
+    if (previewClose) previewClose.addEventListener("click", closeDocumentPreview);
+    if (previewOverlay) previewOverlay.addEventListener("click", closeDocumentPreview);
+    if (previewBuyBtn) previewBuyBtn.addEventListener("click", () => {
+        if (currentPreviewProduct) {
+            addToCart(currentPreviewProduct.id);
+            closeDocumentPreview();
+        }
+    });
+});
 
 const renderProducts = () => {
     const list = getFilteredProducts();
@@ -611,9 +800,12 @@ const renderProducts = () => {
                 <span class="product-cat-label ${p.catLabel}">${p.catName}</span>
                 <h3 class="product-title">${p.title}</h3>
                 <p class="product-desc">${p.desc}</p>
-                <div class="product-footer">
+                <div class="product-footer" style="display:flex; flex-direction:column; gap:0.5rem;">
                     <span class="product-price">${formatPrice(p.price)}</span>
-                    <button class="btn-add" data-id="${p.id}">🛒 Ajouter au Panier</button>
+                    <div style="display:flex; gap:0.35rem; width:100%;">
+                        <button class="btn-secondary btn-sm" onclick="openDocumentPreview('${p.id}')" style="flex:1; padding:0.45rem 0.4rem; font-size:0.75rem; font-weight:600; white-space:nowrap;">👁️ Aperçu (10 p.)</button>
+                        <button class="btn-add" data-id="${p.id}" style="flex:1.2; padding:0.45rem 0.5rem; font-size:0.75rem; font-weight:600;">🛒 Acheter</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -751,12 +943,43 @@ const setupScrollReveal = () => {
 //  AUTHENTICATION SYSTEM
 // ==================================
 
-// Get users from localStorage
+// Get users from localStorage (SECURED — passwords are hashed)
 const getUsers = () => {
     try {
-        return JSON.parse(localStorage.getItem("sk_academia_users")) || [];
+        let savedUsers = JSON.parse(localStorage.getItem("sk_academia_users"));
+        if (!savedUsers) savedUsers = [];
+        return savedUsers;
     } catch { return []; }
 };
+
+// Initialize admin user with hashed password (called at startup)
+const initAdminUser = async () => {
+    let savedUsers = getUsers();
+    let adminUser = savedUsers.find(u => u.email.toLowerCase() === 'admin@skacademia.sn');
+    const adminHash = await getAdminHash();
+
+    if (!adminUser) {
+        adminUser = {
+            id: 1,
+            firstName: "Super",
+            lastName: "Admin",
+            email: "admin@skacademia.sn",
+            phone: "+221765749343",
+            passwordHash: adminHash,
+            createdAt: new Date().toISOString()
+        };
+        savedUsers.push(adminUser);
+        localStorage.setItem("sk_academia_users", JSON.stringify(savedUsers));
+    } else if (!adminUser.passwordHash) {
+        // Migrate from plaintext to hash
+        adminUser.passwordHash = adminHash;
+        delete adminUser.password; // Remove plaintext password
+        localStorage.setItem("sk_academia_users", JSON.stringify(savedUsers));
+    }
+};
+
+// Run admin init at startup
+initAdminUser();
 
 // Save users to localStorage
 const saveUsers = (users) => {
@@ -859,14 +1082,14 @@ const showAuthError = (element, message) => {
 };
 
 // REGISTER
-registerForm.addEventListener("submit", (e) => {
+registerForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     registerError.classList.add("hidden");
 
-    const firstName = document.getElementById("regFirstName").value.trim();
-    const lastName = document.getElementById("regLastName").value.trim();
+    const firstName = sanitizeHTML(document.getElementById("regFirstName").value.trim());
+    const lastName = sanitizeHTML(document.getElementById("regLastName").value.trim());
     const email = document.getElementById("regEmail").value.trim().toLowerCase();
-    const phone = document.getElementById("regPhone").value.trim();
+    const phone = sanitizeHTML(document.getElementById("regPhone").value.trim());
     const password = document.getElementById("regPassword").value;
     const confirmPassword = document.getElementById("regConfirmPassword").value;
     const acceptTerms = document.getElementById("acceptTerms").checked;
@@ -876,8 +1099,12 @@ registerForm.addEventListener("submit", (e) => {
         showAuthError(registerError, "Veuillez remplir tous les champs obligatoires.");
         return;
     }
-    if (password.length < 6) {
-        showAuthError(registerError, "Le mot de passe doit contenir au moins 6 caractères.");
+    if (!isValidEmail(email)) {
+        showAuthError(registerError, "Veuillez entrer une adresse e-mail valide.");
+        return;
+    }
+    if (!isStrongPassword(password)) {
+        showAuthError(registerError, "Le mot de passe doit contenir au moins 6 caractères, 1 majuscule et 1 chiffre.");
         return;
     }
     if (password !== confirmPassword) {
@@ -895,20 +1122,24 @@ registerForm.addEventListener("submit", (e) => {
         return;
     }
 
-    // Create user
+    // Hash password before storing (SECURITY: never store plaintext)
+    const passwordHash = await hashPassword(password);
+
+    // Create user with hashed password
     const newUser = {
         id: Date.now(),
         firstName,
         lastName,
         email,
         phone,
-        password, // Note: In production, this should be hashed
+        passwordHash, // SECURED: SHA-256 hash, not plaintext
         createdAt: new Date().toISOString()
     };
 
     users.push(newUser);
     saveUsers(users);
     setCurrentUser(newUser);
+    updateLastActivity();
 
     // Show success
     authModal.querySelector(".auth-tabs").style.display = "none";
@@ -938,10 +1169,17 @@ registerForm.addEventListener("submit", (e) => {
     }, 2000);
 });
 
-// LOGIN
-loginForm.addEventListener("submit", (e) => {
+// LOGIN (SECURED: hash comparison + rate limiting)
+loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     loginError.classList.add("hidden");
+
+    // Check rate limiting
+    const lockSeconds = isLoginLocked();
+    if (lockSeconds > 0) {
+        showAuthError(loginError, `⏳ Trop de tentatives échouées. Réessayez dans ${lockSeconds} secondes.`);
+        return;
+    }
 
     const email = document.getElementById("loginEmail").value.trim().toLowerCase();
     const password = document.getElementById("loginPassword").value;
@@ -952,19 +1190,56 @@ loginForm.addEventListener("submit", (e) => {
     }
 
     const users = getUsers();
-    const user = users.find(u => u.email === email && u.password === password);
+    const user = users.find(u => u.email === email);
 
     if (!user) {
-        showAuthError(loginError, "E-mail ou mot de passe incorrect.");
+        const locked = recordFailedLogin();
+        if (locked) {
+            showAuthError(loginError, "🔒 Compte verrouillé pendant 2 minutes suite à trop de tentatives.");
+        } else {
+            showAuthError(loginError, `E-mail ou mot de passe incorrect. (${RATE_LIMIT.maxAttempts - RATE_LIMIT.attempts} essais restants)`);
+        }
         return;
     }
 
+    // Compare hashed passwords
+    const inputHash = await hashPassword(password);
+    const storedHash = user.passwordHash || null;
+    const storedPlaintext = user.password || null;
+
+    // Support both hashed and legacy plaintext (migration)
+    let isMatch = false;
+    if (storedHash) {
+        isMatch = (inputHash === storedHash);
+    } else if (storedPlaintext) {
+        // Legacy plaintext comparison + auto-migrate to hash
+        isMatch = (password === storedPlaintext);
+        if (isMatch) {
+            user.passwordHash = inputHash;
+            delete user.password;
+            saveUsers(users);
+        }
+    }
+
+    if (!isMatch) {
+        const locked = recordFailedLogin();
+        if (locked) {
+            showAuthError(loginError, "🔒 Compte verrouillé pendant 2 minutes suite à trop de tentatives.");
+        } else {
+            showAuthError(loginError, `E-mail ou mot de passe incorrect. (${RATE_LIMIT.maxAttempts - RATE_LIMIT.attempts} essais restants)`);
+        }
+        return;
+    }
+
+    // Success
+    resetLoginAttempts();
     setCurrentUser(user);
+    updateLastActivity();
     closeAuthModal();
     loginForm.reset();
     updateAuthUI();
     updateGatedSections();
-    showToast("👋", `Bon retour, ${user.firstName} !`);
+    showToast("👋", `Bon retour, ${sanitizeHTML(user.firstName)} !`);
 });
 
 // LOGOUT
@@ -994,20 +1269,34 @@ const updateAuthUI = () => {
         
         // Add Dashboard redirect to the dropdown if not already added
         const userDropdown = document.getElementById("userDropdown");
-        if (!document.getElementById("btnGoDashboard")) {
+        let btnDash = document.getElementById("btnGoDashboard");
+
+        const isAdmin = user.email.toLowerCase() === 'admin@skacademia.sn';
+
+        if (!btnDash) {
             // Insert it right after the header
-            const btnDash = document.createElement("button");
+            btnDash = document.createElement("button");
             btnDash.className = "user-dropdown-item";
             btnDash.id = "btnGoDashboard";
+            const header = userDropdown.querySelector(".user-dropdown-header");
+            header.insertAdjacentElement("afterend", btnDash);
+        }
+
+        // Update button text and target based on role
+        if (isAdmin) {
+            btnDash.innerHTML = "⚙️ Espace Administration";
+            btnDash.onclick = () => {
+                history.pushState(null, null, "#admin");
+                navigateTo("#admin");
+                userDropdown.classList.remove("show");
+            };
+        } else {
             btnDash.innerHTML = "📊 Mon Dashboard (Espace Membre)";
             btnDash.onclick = () => {
                 history.pushState(null, null, "#dashboard");
                 navigateTo("#dashboard");
-                // Close dropdown manually
                 userDropdown.classList.remove("show");
             };
-            const header = userDropdown.querySelector(".user-dropdown-header");
-            header.insertAdjacentElement("afterend", btnDash);
         }
     } else {
         // Not logged in
@@ -1015,6 +1304,43 @@ const updateAuthUI = () => {
         userProfileNav.classList.add("hidden");
     }
 };
+
+// User Profile Avatar dropdown toggle listener
+const userAvatarBtn = document.getElementById("userAvatarBtn");
+const userDropdown = document.getElementById("userDropdown");
+if (userAvatarBtn && userDropdown) {
+    userAvatarBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        userDropdown.classList.toggle("show");
+    });
+    document.addEventListener("click", (e) => {
+        if (!userDropdown.contains(e.target) && !userAvatarBtn.contains(e.target)) {
+            userDropdown.classList.remove("show");
+        }
+    });
+}
+
+// Search input handlers
+const searchInput = document.getElementById("searchInput");
+const searchClearBtn = document.getElementById("searchClearBtn");
+
+if (searchInput) {
+    searchInput.addEventListener("input", (e) => {
+        searchQuery = e.target.value.trim();
+        if (searchClearBtn) {
+            searchClearBtn.classList.toggle("hidden", searchQuery.length === 0);
+        }
+        renderProducts();
+    });
+}
+if (searchClearBtn) {
+    searchClearBtn.addEventListener("click", () => {
+        if (searchInput) searchInput.value = "";
+        searchQuery = "";
+        searchClearBtn.classList.add("hidden");
+        renderProducts();
+    });
+}
 
 // Manage gated sections
 const updateGatedSections = () => {
@@ -1043,21 +1369,22 @@ const updateGatedSections = () => {
 // ==================
 //  INIT
 // ==================
-renderProducts();
-renderFormations();
-renderDocuments();
-renderCart();
-updateAuthUI();
-updateGatedSections();
+loadDatabase().then(() => {
+    renderFormations();
+    renderDocuments();
+    renderCart();
+    updateAuthUI();
+    updateGatedSections();
 
-// Initialize SPA routing based on current URL hash
-navigateTo(window.location.hash);
+    // Initialize SPA routing based on current URL hash
+    navigateTo(window.location.hash);
 
-// Run scroll reveal
-setTimeout(setupScrollReveal, 100);
+    // Run scroll reveal
+    setTimeout(setupScrollReveal, 100);
+});
 
 // ==================
-//  CHATBOT IA
+//  CHATBOT CONSEILLER COMMERCIAL EN TEMPS RÉEL
 // ==================
 const chatbotToggler = document.getElementById("chatbotToggler");
 const chatbotWindow = document.getElementById("chatbotWindow");
@@ -1069,35 +1396,221 @@ const chatbotSend = document.getElementById("chatbotSend");
 if (chatbotToggler && chatbotWindow) {
     chatbotToggler.addEventListener("click", () => {
         chatbotWindow.classList.toggle("open");
+        if (chatbotWindow.classList.contains("open") && chatbotInput) {
+            chatbotInput.focus();
+        }
     });
 
     chatbotClose.addEventListener("click", () => {
         chatbotWindow.classList.remove("open");
     });
 
-    const chatbotKeywords = [
-        { keys: ["prix", "combien", "tarif", "coût"], reply: "Nos fascicules varient entre 5 000 FCFA et 20 000 FCFA. Vous pouvez payer par Wave ou Orange Money dans la boutique." },
-        { keys: ["concours", "préparer", "examen"], reply: "Nous préparons aux concours de l'État : ENA, Police, Gendarmerie, Santé, FASTEF, EPT, etc. Rendez-vous dans la rubrique 'Préparation Concours' pour choisir votre domaine." },
-        { keys: ["bonjour", "salut", "bonsoir"], reply: "Bonjour ! Comment puis-je vous aider dans vos révisions aujourd'hui ?" },
-        { keys: ["contact", "appeler", "téléphone"], reply: "Vous pouvez nous joindre par WhatsApp grâce au bouton vert flottant juste à côté de moi !" },
-        { keys: ["connexion", "compte", "inscription"], reply: "Pour accéder à vos formations, cliquez sur 'Connexion' dans le menu. L'inscription est rapide et gratuite !" }
-    ];
+    const generateChatbotResponse = (userMsg) => {
+        const text = userMsg.toLowerCase().trim();
 
-    const getChatbotReply = (msg) => {
-        const text = msg.toLowerCase();
-        for (const item of chatbotKeywords) {
-            if (item.keys.some(key => text.includes(key))) {
-                return item.reply;
+        // ==========================================
+        //  0. DÉTECTION DES REMERCIEMENTS & FIN DE CONVERSATION
+        // ==========================================
+        const THANKS_KEYWORDS = ["merci", "merci beaucoup", "merci bien", "jerejef", "jaajuf", "dieuredieuff", "diereudieuf", "thanks", "thank you", "gracias", "au revoir", "bye", "a bientot", "à bientôt", "c'est bon", "cest bon", "c bon", "super merci"];
+        const isThanks = THANKS_KEYWORDS.some(k => text.includes(k));
+
+        if (isThanks) {
+            if (["jerejef", "jaajuf", "dieuredieuff", "diereudieuf"].some(k => text.includes(k))) {
+                return "Jerejef ak yokkute ! Nooko bokk ci SK ACADEMIA. Yalla na nga am ndam ci sa concours yi ! 👋";
             }
+            if (["gracias"].some(k => text.includes(k))) {
+                return "¡De nada! Ha sido un placer ayudarte. ¡Mucho éxito en tus exámenes y hasta pronto! 👋";
+            }
+            if (["thanks", "thank you"].some(k => text.includes(k))) {
+                return "You're very welcome! It was a pleasure assisting you. Best of luck with your exam preparation! 👋";
+            }
+            return "Je vous en prie ! Ce fut un plaisir de vous renseigner. Excellente journée et beaucoup de succès dans vos révisions et concours ! 👋";
         }
-        return "Je suis l'assistant virtuel SK ACADEMIA. Pour des questions spécifiques sur le contenu ou le paiement, n'hésitez pas à télécharger nos brochures ou à nous contacter sur WhatsApp !";
+
+        // ==========================================
+        //  1. MULTILINGUAL SUPPORT (WOLOF, SPANISH, ENGLISH)
+        // ==========================================
+        
+        // WOLOF DETECTION
+        const isWolof = ["nanga def", "na nga def", "naka mu dem", "naka la", "jaajuf", "jajuf", "dieuredieuff", "diereudieuf", "lu bes", "lu bess", "ban concours", "nooko bokk", "waaw", "dakar", "senegal"].some(k => text.includes(k));
+        if (isWolof) {
+            if (["nanga def", "na nga def", "naka mu dem", "naka la", "salut", "bonjour", "lu bes"].some(k => text.includes(k))) {
+                return "Nanga def ! Jama nga am ci SK ACADEMIA. Naka laay la meune dimbali tey ci sa révisions wala ci concours yi (ENA, Police, CREM, FASTEF, Santé) ?";
+            }
+            if (["prix", "combien", "niata", "ñaata", "fcfa"].some(k => text.includes(k))) {
+                return "💰 Nos fascicules varie nga diggante 5 000 FCFA ak 18 000 FCFA. Mën nga fey par Wave wala Orange Money ci boutique bi !";
+            }
+            if (["document", "fascicule", "pdf", "am", "disponible"].some(k => text.includes(k))) {
+                return "📄 Am nañu fascicules yu barré : ENA, Police, Gendarmerie, Douanes, CREM, FASTEF, Ak Santé. Ban concours nga soxla ?";
+            }
+            return "Jerejef ! Man la Moussa, conseiller commercial SK ACADEMIA. Naka laay la meune dimbali ci sa préparation concours ?";
+        }
+
+        // SPANISH DETECTION
+        const isSpanish = ["hola", "buenos dias", "buenas tardes", "buenas noches", "como estas", "gracias", "cuanto cuesta", "precio", "espanol", "español", "documentos"].some(k => text.includes(k));
+        if (isSpanish) {
+            if (["hola", "buenos dias", "buenas tardes", "buenas noches"].some(k => text.includes(k))) {
+                return "¡Hola! Bienvenido a SK ACADEMIA. ¿Cómo puedo ayudarte hoy con la preparación de tus exámenes o concursos en Senegal?";
+            }
+            if (["precio", "cuanto cuesta", "tarifa"].some(k => text.includes(k))) {
+                return "💰 Nuestros resúmenes y exámenes resueltos cuestan entre 5 000 FCFA y 18 000 FCFA. ¡Puedes pagar directamente con Wave u Orange Money!";
+            }
+            if (["documento", "documentos", "disponible"].some(k => text.includes(k))) {
+                return "📄 Tenemos disponibles materiales para ENA, Policía, Guardia Civil, Aduanas, FASTEF (Español/Letras) y Salud. ¿Cuál necesitas?";
+            }
+            return "¡Muchas gracias! Estoy a tu disposición para ayudarte a elegir el mejor material de estudio.";
+        }
+
+        // ENGLISH DETECTION
+        const isEnglish = ["hello", "hi", "good morning", "good evening", "how are you", "thanks", "thank you", "what is", "how much", "price", "available", "documents"].some(k => text.includes(k));
+        if (isEnglish) {
+            if (["hello", "hi", "good morning", "good evening"].some(k => text.includes(k))) {
+                return "Hello! Welcome to SK ACADEMIA. How can I assist you today with your exam prep or document purchases?";
+            }
+            if (["price", "how much", "cost"].some(k => text.includes(k))) {
+                return "💰 Our study booklets and past papers range from 5,000 FCFA to 18,000 FCFA. You can pay easily via Wave or Orange Money!";
+            }
+            if (["document", "documents", "available", "pdf"].some(k => text.includes(k))) {
+                return "📄 We have prep books available for ENA, Police, Customs, Health/Midwife exams, FASTEF, and IT courses. Which one are you looking for?";
+            }
+            return "Thank you for reaching out! Feel free to ask any questions regarding our exams, courses, and learning resources.";
+        }
+
+        // ==========================================
+        //  2. FRENCH CONVERSATIONAL & ENCYCLOPEDIC ENGINE
+        // ==========================================
+
+        // Détection des salutations simples en Français
+        const GREETING_WORDS = ["bnsr", "bonsoir", "bsr", "bonjour", "salut", "coucou", "salam", "hello", "bonsoir moussa", "bonjour moussa"];
+        const words = text.split(/\s+/).filter(w => w.length > 0);
+        const isPureGreeting = words.every(w => GREETING_WORDS.includes(w) || w === "!" || w === "?" || w === "sk");
+
+        if (isPureGreeting || text === "bnsr" || text === "bonsoir" || text === "bonjour" || text === "salut") {
+            if (text.includes("bonsoir") || text.includes("bnsr") || text.includes("bsr")) {
+                return "Bonsoir ! Comment puis-je vous aider aujourd'hui sur SK ACADEMIA ?";
+            }
+            return "Bonjour ! Comment puis-je vous aider aujourd'hui sur SK ACADEMIA ?";
+        }
+
+        // Question spécifique sur la liste des documents disponibles
+        const isAskingAvailableDocs = [
+            "disponible", "disponibles", "dispo", "quels sont les documents", 
+            "liste des documents", "les documents", "quels fascicules", 
+            "catalogue", "ce que vous avez", "les annales", "vous proposez quoi",
+            "quels produits", "liste de document", "avez vous des documents"
+        ].some(k => text.includes(k));
+
+        if (isAskingAvailableDocs) {
+            const topDocs = (PRODUCTS && PRODUCTS.length > 0) ? PRODUCTS.slice(0, 7) : DEFAULT_PRODUCTS.slice(0, 7);
+            let docsListHtml = topDocs.map(p => `<li>• <strong>${p.title}</strong> (${p.catName || 'Concours'}) — <span style="color:var(--orange-dark); font-weight:600;">${formatPrice(p.price)}</span></li>`).join("");
+
+            return `
+                <p style="margin-bottom:0.5rem;">Voici la liste des documents et fascicules actuellement disponibles sur SK ACADEMIA :</p>
+                <ul style="padding-left:0.5rem; margin-bottom:0.75rem; display:flex; flex-direction:column; gap:0.4rem; list-style:none;">
+                    ${docsListHtml}
+                </ul>
+                <p>Lequel de ces concours vous intéresse ?</p>
+            `;
+        }
+
+        // Réponses encyclopédiques & thématiques ciblées
+        const responses = [];
+
+        // CONCOURS ENSEIGNEMENT & DOMAINES ACADÉMIQUES (CREM, FASTEF, UGB, ESPAGNOLE, LETTRES)
+        if (["crem", "fastef", "ugb", "enseignement", "instituteur", "professeur", "espagnol", "lettres", "pedagogie", "pédagogie", "leçon d'essai"].some(k => text.includes(k))) {
+            responses.push("📚 **Concours de l'Enseignement (CREM, FASTEF, UGB)** : Nous proposons les fiches méthodologiques pour la leçon d'essai, la dissertation pédagogique ainsi que les annales résolues par option (Espagnol, Lettres, Mathématiques, SVT, PC) pour tous les niveaux.");
+        }
+
+        // GESTION, COMPTABILITÉ, FINANCE & RH
+        if (["comptabilité", "comptabilite", "finance", "rh", "ressources humaines", "gestion", "paie", "recrutement", "ohada", "bilan"].some(k => text.includes(k))) {
+            responses.push("📊 **Gestion, Comptabilité, Finance & RH** : Nos ressources couvrent le système comptable SYSCOHADA, l'analyse financière, la gestion de la paie et le droit du travail sénégalais avec exercices corrigés.");
+        }
+
+        // INFORMATIQUE & COMPÉTENCES DIGITALES (IA, Web, Python, Excel)
+        if (["informatique", "web", "programmation", "excel", "bureautique", "ia", "intelligence artificielle", "code", "python"].some(k => text.includes(k))) {
+            responses.push("💻 **Informatique & Nouvelles Technologies** : Nos modules incluent l'IA Appliquée, le Développement Web (HTML/CSS/JS/Python) et la maîtrise d'Excel Avancé avec travaux pratiques certifiants.");
+        }
+
+        // ADMINISTRATION & JUSTICE (ENA, Magistrature, Greffe)
+        if (["ena", "magistrat", "greffier", "crem", "droit", "administration", "justice"].some(k => text.includes(k))) {
+            responses.push("🏛️ **Administration & Justice (ENA, Magistrature, Greffe)** : Fascicules complets en droit public/administratif, culture générale régionale et 10 ans d'annales corrigées.");
+        }
+
+        // SÉCURITÉ & DÉFENSE (Police, Gendarmerie, Douanes, ENSOA)
+        if (["police", "gendarmerie", "douane", "douanes", "sécurité", "securite", "ensoa", "armée"].some(k => text.includes(k))) {
+            responses.push("🛡️ **Sécurité & Défense (Police, Gendarmerie, Douanes, ENSOA)** : Préparation intégrale aux épreuves écrites (dictée, QCM, maths) et guide d'épreuves physiques.");
+        }
+
+        // SANTÉ & SOCIAL (Sage-femme, INSEPS, UDES)
+        if (["santé", "sante", "sage-femme", "sage femme", "inseps", "udes", "biologie", "infirmier"].some(k => text.includes(k))) {
+            responses.push("🩺 **Santé & Social (Sage-femme, INSEPS, UDES)** : Cours de biologie humaine, chimie, physique et tests psychotechniques avec annales résolues.");
+        }
+
+        // POLYTECHNIQUE & GRANDES ÉCOLES (EPT Thiès, ESP Dakar)
+        if (["polytechnique", "ept", "esp", "thiès", "thies", "dakar", "ingénieur"].some(k => text.includes(k))) {
+            responses.push("📐 **Grandes Écoles (EPT Thiès / ESP Dakar)** : Annales corrigées de mathématiques approfondies et physique-chimie résolues étape par étape.");
+        }
+
+        // PRIX & TARIFS
+        if (["prix", "combien", "tarif", "coût", "cout", "combien coute", "fcfa", "payant"].some(k => text.includes(k))) {
+            responses.push("💰 **Prix & Tarifs** : Nos fascicules et annales varient entre 5 000 FCFA et 18 000 FCFA. Nos formations vidéos complètes sont à partir de 25 000 FCFA.");
+        }
+
+        // PAIEMENT (WAVE / ORANGE MONEY)
+        if (["payer", "paiement", "wave", "orange money", "om", "mode de paiement", "moyen de paiement", "acheter", "achat"].some(k => text.includes(k))) {
+            responses.push("🌊 **Paiement Simple** : Réglez directement par Wave ou Orange Money depuis votre panier. Téléchargement immédiat de vos PDF dès la validation.");
+        }
+
+        // CONTACT & COMPTE
+        if (["contact", "appeler", "téléphone", "telephone", "whatsapp", "numéro", "numero", "support", "email"].some(k => text.includes(k))) {
+            responses.push("📞 Vous pouvez nous contacter sur WhatsApp via le bouton vert flottant ou par e-mail à contact@skacademia.sn.");
+        }
+
+        // Si des réponses thématiques ont été trouvées
+        if (responses.length > 0) {
+            let greetingPrefix = "";
+            if (text.includes("bonjour") || text.includes("salut") || text.includes("salam") || text.includes("hello")) {
+                greetingPrefix = "Bonjour ! ";
+            } else if (text.includes("bonsoir") || text.includes("bnsr") || text.includes("bsr")) {
+                greetingPrefix = "Bonsoir ! ";
+            }
+            return `${greetingPrefix}${responses.join("<br><br>")}`;
+        }
+
+        // Réponse d'attente encyclopédique
+        return "Je peux vous renseigner sur tous les concours (ENA, Police, Douanes, CREM, FASTEF, UGB, Santé, EPT), la gestion/comptabilité/RH, l'informatique ou les tarifs (5 000 à 18 000 FCFA). Quelle est votre question ?";
+    };
+
+    // Real-time typing & response rendering
+    const streamBotMessage = (htmlContent, autoClose = false) => {
+        // Create bot message container
+        const botDiv = document.createElement("div");
+        botDiv.className = "chatbot-msg bot";
+        botDiv.style.lineHeight = "1.5";
+        chatbotBody.appendChild(botDiv);
+
+        // Immediate typing indicator
+        botDiv.innerHTML = `<div class="chatbot-typing" style="padding:0.2rem 0.5rem;"><span></span><span></span><span></span></div>`;
+        chatbotBody.scrollTop = chatbotBody.scrollHeight;
+
+        // Render response in real-time
+        setTimeout(() => {
+            botDiv.innerHTML = htmlContent;
+            chatbotBody.scrollTop = chatbotBody.scrollHeight;
+
+            if (autoClose) {
+                setTimeout(() => {
+                    chatbotWindow.classList.remove("open");
+                }, 3000);
+            }
+        }, 200);
     };
 
     const handleChatbotSend = () => {
         const msg = chatbotInput.value.trim();
         if (!msg) return;
         
-        // User bubble
+        // Render user message bubble
         const userDiv = document.createElement("div");
         userDiv.className = "chatbot-msg user";
         userDiv.textContent = msg;
@@ -1105,22 +1618,13 @@ if (chatbotToggler && chatbotWindow) {
         chatbotInput.value = "";
         chatbotBody.scrollTop = chatbotBody.scrollHeight;
         
-        // Typing indicator
-        const typingDiv = document.createElement("div");
-        typingDiv.className = "chatbot-msg bot chatbot-typing";
-        typingDiv.innerHTML = "<span></span><span></span><span></span>";
-        chatbotBody.appendChild(typingDiv);
-        chatbotBody.scrollTop = chatbotBody.scrollHeight;
-        
-        // AI reply
-        setTimeout(() => {
-            typingDiv.remove();
-            const botDiv = document.createElement("div");
-            botDiv.className = "chatbot-msg bot";
-            botDiv.textContent = getChatbotReply(msg);
-            chatbotBody.appendChild(botDiv);
-            chatbotBody.scrollTop = chatbotBody.scrollHeight;
-        }, 1500);
+        // Check if thanks / end of conversation
+        const THANKS_KEYS = ["merci", "merci beaucoup", "merci bien", "jerejef", "jaajuf", "dieuredieuff", "diereudieuf", "thanks", "thank you", "gracias", "au revoir", "bye", "a bientot", "à bientôt", "c'est bon", "cest bon", "c bon", "super merci"];
+        const isThanksMsg = THANKS_KEYS.some(k => msg.toLowerCase().includes(k));
+
+        // Generate and stream real-time response
+        const responseHtml = generateChatbotResponse(msg);
+        streamBotMessage(responseHtml, isThanksMsg);
     };
 
     chatbotSend.addEventListener("click", handleChatbotSend);
@@ -1134,16 +1638,17 @@ if (chatbotToggler && chatbotWindow) {
 // ==================
 document.querySelectorAll(".dash-nav-btn[data-tab]").forEach(btn => {
     btn.addEventListener("click", () => {
-        // Remove active from all nav buttons
-        document.querySelectorAll(".dash-nav-btn").forEach(b => b.classList.remove("active"));
+        const layout = btn.closest(".dashboard-layout") || document;
+        // Remove active from nav buttons in this layout
+        layout.querySelectorAll(".dash-nav-btn").forEach(b => b.classList.remove("active"));
         // Add active to clicked
         btn.classList.add("active");
 
-        // Hide all tabs
-        document.querySelectorAll(".dash-tab").forEach(tab => tab.classList.remove("active"));
+        // Hide tabs in this layout
+        layout.querySelectorAll(".dash-tab").forEach(tab => tab.classList.remove("active"));
         // Show target tab
         const targetId = btn.getAttribute("data-tab");
-        const targetTab = document.getElementById(targetId);
+        const targetTab = layout.querySelector("#" + targetId) || document.getElementById(targetId);
         if (targetTab) {
             targetTab.classList.add("active");
         }
@@ -1194,3 +1699,1135 @@ document.querySelectorAll("button[onclick^='navigateTo']").forEach(btn => {
         });
     }
 });
+
+// ==================
+//  ADMIN LOGIC
+// ==================
+const adminModal = document.getElementById("adminModal");
+const adminModalOverlay = document.getElementById("adminModalOverlay");
+const adminProductForm = document.getElementById("adminProductForm");
+
+let tempProdContentBase64 = "";
+let tempProdImageBase64 = "";
+
+// Mapping constants for clean product labels
+const TYPE_NAMES = {
+    "fascicule": "Fascicule",
+    "annale": "Annale",
+    "cours": "Cours PDF",
+    "formation": "Formation Vidéo",
+    "pack": "Pack Complet"
+};
+
+const CAT_NAMES = {
+    "administration": "Administration & Justice",
+    "securite": "Sécurité & Défense",
+    "douane": "Douanes",
+    "sante": "Santé & Social",
+    "grandes-ecoles": "Grandes Écoles",
+    "enseignement": "Enseignement (FASTEF)",
+    "formation": "Informatique & Web"
+};
+
+const CAT_LABELS = {
+    "administration": "cat-lbl-admin",
+    "securite": "cat-lbl-secu",
+    "douane": "cat-lbl-secu",
+    "sante": "cat-lbl-sante",
+    "grandes-ecoles": "cat-lbl-ecoles",
+    "enseignement": "cat-lbl-ens",
+    "formation": "cat-lbl-form"
+};
+
+const CAT_BGS = {
+    "administration": "bg-admin",
+    "securite": "bg-secu",
+    "douane": "bg-secu",
+    "sante": "bg-sante",
+    "grandes-ecoles": "bg-ecoles",
+    "enseignement": "bg-ens",
+    "formation": "bg-form"
+};
+
+const CAT_ICONS = {
+    "fascicule": "📄",
+    "annale": "📜",
+    "cours": "📖",
+    "formation": "🎥",
+    "pack": "📦"
+};
+
+document.getElementById("adminProdContentFile")?.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            tempProdContentBase64 = ev.target.result;
+            const contentInput = document.getElementById("adminProdContent");
+            if (contentInput) contentInput.value = file.name;
+            const status = document.getElementById("adminProdContentStatus");
+            if (status) status.textContent = `Fichier prêt : ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+document.getElementById("adminProdImageFile")?.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            tempProdImageBase64 = ev.target.result;
+            const imgInput = document.getElementById("adminProdImage");
+            if (imgInput) imgInput.value = file.name;
+            const status = document.getElementById("adminProdImageStatus");
+            if (status) status.textContent = `Image prête : ${file.name}`;
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+const openAdminModal = (prodId = null, prefillType = "") => {
+    if (!adminProductForm) return;
+    adminProductForm.reset();
+    tempProdContentBase64 = "";
+    tempProdImageBase64 = "";
+    
+    const contentStatus = document.getElementById("adminProdContentStatus");
+    const imageStatus = document.getElementById("adminProdImageStatus");
+    if (contentStatus) contentStatus.textContent = "";
+    if (imageStatus) imageStatus.textContent = "";
+
+    if (document.getElementById("adminProdContentFile")) document.getElementById("adminProdContentFile").value = "";
+    if (document.getElementById("adminProdImageFile")) document.getElementById("adminProdImageFile").value = "";
+    document.getElementById("adminProdId").value = "";
+    
+    if (prefillType) {
+        const typeSelect = document.getElementById("adminProdType");
+        if (typeSelect) typeSelect.value = prefillType;
+    }
+
+    if (prodId) {
+        const prod = PRODUCTS.find(p => p.id == prodId);
+        if (prod) {
+            document.getElementById("adminProdId").value = prod.id;
+            document.getElementById("adminProdTitle").value = prod.title || "";
+            if (document.getElementById("adminProdType")) document.getElementById("adminProdType").value = prod.type || "fascicule";
+            if (document.getElementById("adminProdCategory")) document.getElementById("adminProdCategory").value = prod.category || "administration";
+            document.getElementById("adminProdPrice").value = prod.price || 0;
+            document.getElementById("adminProdContent").value = prod.contentUrl || "";
+            document.getElementById("adminProdImage").value = prod.image || "";
+            document.getElementById("adminProdDesc").value = prod.desc || "";
+        }
+    }
+    adminModal.classList.add("show");
+    adminModalOverlay.classList.add("show");
+};
+
+const closeAdminModal = () => {
+    if (adminModal) adminModal.classList.remove("show");
+    if (adminModalOverlay) adminModalOverlay.classList.remove("show");
+};
+
+if (document.getElementById("adminModalClose")) {
+    document.getElementById("adminModalClose").addEventListener("click", closeAdminModal);
+    if (adminModalOverlay) adminModalOverlay.addEventListener("click", closeAdminModal);
+}
+
+if (adminProductForm) {
+    adminProductForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const id = document.getElementById("adminProdId").value;
+        const title = document.getElementById("adminProdTitle").value.trim();
+        const type = document.getElementById("adminProdType").value || "fascicule";
+        const category = document.getElementById("adminProdCategory").value || "administration";
+        const price = parseInt(document.getElementById("adminProdPrice").value) || 0;
+        const contentUrl = tempProdContentBase64 || document.getElementById("adminProdContent").value.trim();
+        const imageInput = tempProdImageBase64 || document.getElementById("adminProdImage").value.trim();
+        const desc = document.getElementById("adminProdDesc").value.trim();
+
+        const typeName = TYPE_NAMES[type] || (type ? type.charAt(0).toUpperCase() + type.slice(1) : "Produit");
+        const catName = CAT_NAMES[category] || (category ? category.charAt(0).toUpperCase() + category.slice(1) : "Général");
+        const catLabel = CAT_LABELS[category] || "cat-lbl-admin";
+        const bg = CAT_BGS[category] || "bg-admin";
+        const icon = CAT_ICONS[type] || "📦";
+        const finalImage = imageInput || CAT_IMAGES[category] || "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?q=80&w=600&auto=format&fit=crop";
+
+        if (id) {
+            // Edit
+            const index = PRODUCTS.findIndex(p => p.id == id);
+            if (index > -1) {
+                PRODUCTS[index] = {
+                    ...PRODUCTS[index],
+                    title, type, category, price, contentUrl, desc,
+                    typeName, catName, catLabel, bg, icon,
+                    image: imageInput || PRODUCTS[index].image || finalImage
+                };
+            }
+        } else {
+            // Add new product/document
+            const newProd = {
+                id: Date.now(),
+                title, type, category, price, contentUrl, desc,
+                typeName, catName, catLabel, bg, icon,
+                image: finalImage
+            };
+            PRODUCTS.unshift(newProd);
+        }
+        
+        saveProducts();
+        closeAdminModal();
+        showToast("✅", `Produit "${title.slice(0, 30)}..." enregistré avec succès !`);
+    });
+}
+
+const deleteProduct = (id) => {
+    if (confirm("Voulez-vous vraiment supprimer ce produit ?")) {
+        const index = PRODUCTS.findIndex(p => p.id == id);
+        if (index > -1) {
+            PRODUCTS.splice(index, 1);
+            saveProducts();
+            showToast("🗑️", "Produit supprimé");
+        }
+    }
+};
+
+window.deleteProduct = deleteProduct; // Expose globally
+window.openAdminModal = openAdminModal; // Expose globally
+
+const renderAdminProducts = () => {
+    const tbodyAll = document.getElementById("adminProductsTable");
+    const tbodyDocs = document.getElementById("adminDocsTable");
+    const tbodyVideos = document.getElementById("adminVideosTable");
+
+    const buildRow = (p) => `
+        <tr>
+            <td><strong>${p.title || 'Sans titre'}</strong></td>
+            <td><span class="product-type-badge" style="position:static; display:inline-block">${p.typeName || p.type || 'Fascicule'}</span></td>
+            <td><strong>${formatPrice(p.price || 0)}</strong></td>
+            <td>
+                <button class="btn-edit" onclick="openAdminModal('${p.id}')">✏️ Éditer</button>
+                <button class="btn-delete" onclick="deleteProduct('${p.id}')">❌ Supprimer</button>
+            </td>
+        </tr>
+    `;
+
+    if (tbodyAll) tbodyAll.innerHTML = PRODUCTS.map(buildRow).join("");
+    if (tbodyDocs) tbodyDocs.innerHTML = PRODUCTS.filter(p => p.type && ["fascicule", "annale", "document", "cours", "pdf"].includes(String(p.type).toLowerCase())).map(buildRow).join("");
+    if (tbodyVideos) tbodyVideos.innerHTML = PRODUCTS.filter(p => p.type && ["formation", "video", "pack"].includes(String(p.type).toLowerCase())).map(buildRow).join("");
+};
+
+// ==================================
+//  STUDENT DASHBOARD RENDERER
+// ==================================
+const renderStudentDashboard = () => {
+    const user = getCurrentUser();
+    const coursesContainer = document.getElementById("dashCoursesContainer");
+    const docsContainer = document.getElementById("dashDocsContainer");
+    
+    if (!coursesContainer || !docsContainer) return;
+
+    if (user) {
+        if (document.getElementById("dashName")) document.getElementById("dashName").textContent = `${user.firstName} ${user.lastName}`;
+        if (document.getElementById("dashAvatar")) document.getElementById("dashAvatar").textContent = getInitials(user.firstName, user.lastName);
+    }
+
+    const purchases = (user && user.purchases) ? user.purchases : [];
+
+    // Filter courses & videos vs documents
+    const boughtCourses = purchases.filter(p => p.type && ["formation", "cours", "video"].includes(String(p.type).toLowerCase()));
+    const boughtDocs = purchases.filter(p => !p.type || ["fascicule", "annale", "pdf", "pack", "document"].includes(String(p.type).toLowerCase()) || !boughtCourses.includes(p));
+
+    // Render Courses UI
+    if (boughtCourses.length === 0) {
+        coursesContainer.innerHTML = `
+            <div class="dash-course-card" style="grid-column: 1 / -1;">
+                <div class="dash-cc-info" style="text-align:center; padding:2.5rem 1.5rem;">
+                    <span style="font-size:2.5rem; display:block; margin-bottom:0.5rem;">🎓</span>
+                    <h3>Aucune formation vidéo active</h3>
+                    <p style="color:var(--text-muted); margin-bottom:1rem;">Inscrivez-vous à nos formations vidéos ou concours pour accéder à vos cours en ligne.</p>
+                    <button class="btn-primary btn-sm" onclick="navigateTo('#concours')">Découvrir nos Concours & Formations →</button>
+                </div>
+            </div>`;
+    } else {
+        coursesContainer.innerHTML = boughtCourses.map(c => `
+            <div class="dash-course-card">
+                <div class="dash-cc-img"><img src="${c.image || 'images/concours-securite.png'}" alt="${c.title}"></div>
+                <div class="dash-cc-info">
+                    <h3>${c.title}</h3>
+                    <div class="progress-bar"><div class="progress-fill" style="width: ${c.progress || 25}%;"></div></div>
+                    <span class="progress-text">${c.progress || 25}% complété</span>
+                    <button class="btn-primary btn-sm" onclick="openCoursePlayer('${(c.title || '').replace(/'/g, "\\'")}')">Continuer →</button>
+                </div>
+            </div>
+        `).join("");
+    }
+
+    // Render Docs UI
+    if (boughtDocs.length === 0) {
+        docsContainer.innerHTML = `
+            <div class="dash-list-item" style="justify-content:center; text-align:center; padding:2.5rem 1.5rem;">
+                <div>
+                    <span style="font-size:2rem; display:block; margin-bottom:0.5rem;">📑</span>
+                    <p style="color:var(--text-muted); margin-bottom:1rem;">Aucun document ou fascicule acheté pour le moment.</p>
+                    <button class="btn-primary btn-sm" onclick="navigateTo('#boutique')">Explorer la Boutique →</button>
+                </div>
+            </div>`;
+    } else {
+        docsContainer.innerHTML = boughtDocs.map(d => `
+            <div class="dash-list-item">
+                <div class="dash-item-icon">${d.icon || '📄'}</div>
+                <div class="dash-item-text" style="flex:1; margin:0 1rem;">
+                    <strong>${d.title}</strong><br>
+                    <span style="font-size:0.8rem; color:var(--text-muted);">Acheté le ${d.purchasedAt || 'Récemment'}</span>
+                </div>
+                <button class="btn-secondary btn-sm" onclick="openDocumentFile('${(d.contentUrl || d.image || '').replace(/'/g, "\\'")}', '${(d.title || '').replace(/'/g, "\\'")}')">📥 Télécharger / Ouvrir</button>
+            </div>
+        `).join("");
+    }
+};
+
+const openDocumentFile = (url, title) => {
+    if (!url) {
+        showToast("📄", `Ouverture du document "${title}"...`);
+        return;
+    }
+    if (url.startsWith("data:") || url.startsWith("http")) {
+        const win = window.open(url, "_blank");
+        if (!win) showToast("⚠️", "Veuillez autoriser les fenêtres surgissantes pour ouvrir le fichier.");
+    } else {
+        showToast("📄", `Accès au fichier : ${url}`);
+    }
+};
+
+const openCoursePlayer = (title) => {
+    const playerTitle = document.getElementById("coursePlayerTitle");
+    if (playerTitle) playerTitle.textContent = title;
+    history.pushState(null, null, "#course");
+    navigateTo("#course");
+};
+
+window.openDocumentFile = openDocumentFile;
+window.openCoursePlayer = openCoursePlayer;
+window.renderStudentDashboard = renderStudentDashboard;
+
+// Expose rendering globally
+window.renderAdminProducts = renderAdminProducts;
+
+// ==========================================
+//  BENCHMARKED DEMO / FREE TRIAL MODAL LOGIC
+// ==========================================
+const openDemoModal = () => {
+    const demoOverlay = document.getElementById("demoOverlay");
+    const demoModal = document.getElementById("demoModal");
+    if (demoOverlay && demoModal) {
+        demoOverlay.classList.add("show");
+        demoModal.classList.add("show");
+        document.body.style.overflow = "hidden";
+    }
+};
+
+const closeDemoModal = () => {
+    const demoOverlay = document.getElementById("demoOverlay");
+    const demoModal = document.getElementById("demoModal");
+    if (demoOverlay && demoModal) {
+        demoOverlay.classList.remove("show");
+        demoModal.classList.remove("show");
+        document.body.style.overflow = "";
+    }
+};
+
+window.openDemoModal = openDemoModal;
+window.closeDemoModal = closeDemoModal;
+
+document.addEventListener("DOMContentLoaded", () => {
+    const demoClose = document.getElementById("demoClose");
+    const demoOverlay = document.getElementById("demoOverlay");
+    const demoForm = document.getElementById("demoForm");
+
+    if (demoClose) demoClose.addEventListener("click", closeDemoModal);
+    if (demoOverlay) demoOverlay.addEventListener("click", closeDemoModal);
+
+    if (demoForm) {
+        demoForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const name = document.getElementById("demoName").value.trim();
+            const phone = document.getElementById("demoPhone").value.trim();
+            const target = document.getElementById("demoTarget").value;
+            const slot = document.getElementById("demoSlot").value;
+
+            closeDemoModal();
+            demoForm.reset();
+
+            showToast("🎉", `Merci ${name} ! Votre réservation d'essai gratuit pour ${target} (${slot}) a été enregistrée.`);
+
+            setTimeout(() => {
+                const msg = encodeURIComponent(`Bonjour SK ACADEMIA, je m'appelle ${name} (${phone}). Je souhaite réserver ma séance d'essai gratuite pour le concours ${target} (${slot}).`);
+                window.open(`https://wa.me/221765749343?text=${msg}`, "_blank");
+            }, 2000);
+        });
+    }
+});
+
+// ==========================================
+//  INNOVATION 1 & 2 : SIMULATEUR & KEYWORD FILTER
+// ==========================================
+const filterProductsByKeyword = (kw) => {
+    const searchInput = document.getElementById("searchInput");
+    if (searchInput) {
+        searchInput.value = kw;
+        searchInput.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    history.pushState(null, null, "#boutique");
+    navigateTo("#boutique");
+};
+window.filterProductsByKeyword = filterProductsByKeyword;
+
+const runEligibilitySimulation = () => {
+    const diplome = document.getElementById("simDiplome").value;
+    const age = document.getElementById("simAge").value;
+    const resultsDiv = document.getElementById("simResults");
+    const matchesList = document.getElementById("simMatchesList");
+
+    if (!resultsDiv || !matchesList) return;
+
+    let matches = [];
+    if (diplome === "BFEM") {
+        matches = [
+            "👮 Concours Sous-Officiers de Police & Gendarmerie (Niveau BFEM/3ème)",
+            "🪖 Concours ENSOA (École Nationale des Sous-Officiers d'Actif)"
+        ];
+    } else if (diplome === "BAC") {
+        matches = [
+            "👮 Concours Police Nationale (Gardien de la Paix & Inspecteur)",
+            "🛃 Concours Douanes Sénégalaises (Préposé & Contrôleur)",
+            "🤱 Concours Sage-Femme & Santé (UDES / INSEPS)",
+            "📐 Concours Polytechnique Thiès & ESP Dakar (Filières Ingénieurs)"
+        ];
+    } else if (diplome === "LICENCE") {
+        matches = [
+            "🏛️ Concours Direct ENA Sénégal (Section Administrative)",
+            "⚖️ Concours Greffier & Magistrature",
+            "📚 Concours FASTEF Dakar (Enseignement Secondaire / Collège)",
+            "🛃 Concours Inspecteur des Douanes & Officier de Police"
+        ];
+    } else if (diplome === "MASTER") {
+        matches = [
+            "🏛️ Concours ENA Sénégal (Grandes Écoles d'État)",
+            "⚖️ Concours Magistrature (Haute Fonction Publique)",
+            "📚 Concours FASTEF Spécialités Supérieures (Lycée & Écoles Normales)"
+        ];
+    }
+
+    matchesList.innerHTML = matches.map(m => `
+        <div style="padding:0.6rem 0.8rem; background:white; border:1px solid #cbd5e1; border-radius:6px; font-weight:600; color:var(--blue-deep); font-size:0.9rem;">
+            ${m}
+        </div>
+    `).join("");
+
+    resultsDiv.style.display = "block";
+    resultsDiv.scrollIntoView({ behavior: "smooth" });
+};
+window.runEligibilitySimulation = runEligibilitySimulation;
+
+// ==========================================
+//  INNOVATION 3 : SOCIAL PROOF LIVE FEED ROTATOR
+// ==========================================
+const SOCIAL_PROOF_FEED = [
+    { name: "Seydou D. (Dakar)", msg: "Vient d'acheter le Fascicule ENA 2026", icon: "📋" },
+    { name: "Mariama S. (Thiès)", msg: "A réservé un Essai Gratuit FASTEF", icon: "🎓" },
+    { name: "Ibrahima K. (Saint-Louis)", msg: "Vient d'acheter le Pack Police Nationale", icon: "👮" },
+    { name: "Awa N. (Ziguinchor)", msg: "Vient de télécharger l'Annale Douanes", icon: "🛃" },
+    { name: "Cheikh B. (Kaolack)", msg: "Vient d'acheter la Formation IA & Python", icon: "💻" }
+];
+
+let socialProofIndex = 0;
+const startSocialProofRotator = () => {
+    const popup = document.getElementById("socialProofPopup");
+    const spIcon = document.getElementById("spIcon");
+    const spName = document.getElementById("spName");
+    const spMsg = document.getElementById("spMsg");
+
+    if (!popup || !spName || !spMsg) return;
+
+    setInterval(() => {
+        const item = SOCIAL_PROOF_FEED[socialProofIndex];
+        spIcon.textContent = item.icon;
+        spName.textContent = item.name;
+        spMsg.textContent = `${item.msg} (il y a ${Math.floor(Math.random()*5)+1} min)`;
+
+        popup.style.transform = "translateY(0)";
+
+        setTimeout(() => {
+            popup.style.transform = "translateY(150%)";
+        }, 5000);
+
+        socialProofIndex = (socialProofIndex + 1) % SOCIAL_PROOF_FEED.length;
+    }, 12000);
+};
+
+setTimeout(startSocialProofRotator, 3000);
+
+// ==========================================
+//  DEDICATED CONCOURS HUB & DOCUMENT LEVEL ENGINE
+// ==========================================
+let currentHubConcoursKey = "douanes";
+let currentHubLevelFilter = "all";
+
+const CONCOURS_HUB_DATA = {
+    "douanes": {
+        title: "Concours des Douanes Sénégalaises",
+        badge: "🛃 Douanes",
+        info: `
+            <strong>🏛️ Présentation Officielle &amp; Niveaux d'Accès :</strong><br>
+            Le concours des Douanes Sénégalaises recrute à plusieurs niveaux de diplômes :<br>
+            • <strong>Inspecteur des Douanes :</strong> Niveau Licence (L3) / Master. Épreuves écrites d'économie, droit douanier, culture générale et note de synthèse.<br>
+            • <strong>Contrôleur des Douanes :</strong> Niveau Baccalauréat (Toutes séries). Épreuves de mathématiques, français et culture générale.<br>
+            • <strong>Préposé des Douanes :</strong> Niveau BFEM / Brevet. Épreuves de dictée, calcul et test physique.
+        `
+    },
+    "ena": {
+        title: "Concours Direct &amp; Professionnel ENA Sénégal",
+        badge: "🏛️ ENA Sénégal",
+        info: `
+            <strong>🏛️ Présentation Officielle &amp; Niveaux d'Accès :</strong><br>
+            L'École Nationale d'Administration forme les cadres supérieurs de l'État :<br>
+            • <strong>Cycle Supérieur (Section Administrative &amp; Économique) :</strong> Niveau Master / BAC+5.<br>
+            • <strong>Cycle Moyen :</strong> Niveau Licence (L3) / BAC+3.<br>
+            • <strong>Matières phares :</strong> Droit administratif, Économie générale, Culture générale sénégalaise et internationale, Rédaction administrative.
+        `
+    },
+    "police": {
+        title: "Concours de la Police Nationale du Sénégal",
+        badge: "👮 Police Nationale",
+        info: `
+            <strong>🏛️ Présentation Officielle &amp; Niveaux d'Accès :</strong><br>
+            La Police Nationale recrute sur épreuves écrites, orales et physiques :<br>
+            • <strong>Commissaire &amp; Officier :</strong> Niveau Master &amp; Licence.<br>
+            • <strong>Inspecteur de Police :</strong> Niveau Licence (L3).<br>
+            • <strong>Gardien de la Paix &amp; Agent :</strong> Niveau BAC &amp; BFEM.<br>
+            • <strong>Épreuves :</strong> Dissertations, QCM de logique, culture générale, dictée et épreuves sportives.
+        `
+    },
+    "securite": {
+        title: "Concours Sécurité &amp; Défense (Police, Gendarmerie, Douanes, ENSOA)",
+        badge: "🛡️ Sécurité &amp; Défense",
+        info: `
+            <strong>🏛️ Présentation Officielle &amp; Niveaux d'Accès :</strong><br>
+            Ensemble des concours de la force publique du Sénégal :<br>
+            • <strong>Gendarmerie Nationale :</strong> Sous-officiers (BAC/BFEM) et Officiers (Licence).<br>
+            • <strong>ENSOA :</strong> École Nationale des Sous-Officiers d'Actif (BAC/BFEM).<br>
+            • <strong>Épreuves :</strong> Rédaction, culture générale, épreuves physiques et médicales.
+        `
+    },
+    "sante": {
+        title: "Concours de Santé (Sage-Femme, INSEPS, UDES)",
+        badge: "🩺 Santé &amp; Social",
+        info: `
+            <strong>🏛️ Présentation Officielle &amp; Niveaux d'Accès :</strong><br>
+            • <strong>Concours Sage-Femme d'État :</strong> Niveau BAC (Séries S ou L avec prérequis scientifiques).<br>
+            • <strong>INSEPS (Éducation Physique &amp; Sportive) :</strong> Niveau BAC &amp; Licence.<br>
+            • <strong>UDES &amp; Écoles de Santé :</strong> Niveau BFEM &amp; BAC.<br>
+            • <strong>Épreuves :</strong> Biologie humaine, Chimie, Tests psychotechniques et culture sanitaire.
+        `
+    },
+    "grandes-ecoles": {
+        title: "Concours Grandes Écoles (Polytechnique Thiès EPT &amp; ESP Dakar)",
+        badge: "📐 Grandes Écoles",
+        info: `
+            <strong>🏛️ Présentation Officielle &amp; Niveaux d'Accès :</strong><br>
+            • <strong>Polytechnique de Thiès (EPT) :</strong> Niveau BAC S1, S2, S3.<br>
+            • <strong>École Supérieure Polytechnique (ESP Dakar) :</strong> Niveau BAC S, T, L ou Licence Scientifique.<br>
+            • <strong>Épreuves :</strong> Mathématiques approfondies, Physique-Chimie, Logique scientifique.
+        `
+    },
+    "enseignement": {
+        title: "Concours FASTEF Dakar &amp; Enseignement",
+        badge: "📚 FASTEF Enseignement",
+        info: `
+            <strong>🏛️ Présentation Officielle &amp; Niveaux d'Accès :</strong><br>
+            • <strong>FASTEF (Professeur de Collège &amp; Lycée) :</strong> Niveau Licence (BAC+3) &amp; Master.<br>
+            • <strong>Spécialités :</strong> Lettres, Espagnol, Anglais, Maths, SVT, Physique-Chimie, Histoire-Géo.<br>
+            • <strong>Épreuves :</strong> Écrit disciplinaire + Épreuve pratique de Leçon d'Essai devant le jury.
+        `
+    }
+};
+
+const openConcoursHub = (concoursKey = "douanes") => {
+    const key = String(concoursKey).toLowerCase();
+    currentHubConcoursKey = key;
+    currentHubLevelFilter = "all";
+
+    const data = CONCOURS_HUB_DATA[key] || CONCOURS_HUB_DATA["douanes"];
+
+    const overlay = document.getElementById("concoursHubOverlay");
+    const modal = document.getElementById("concoursHubModal");
+    const hubTitle = document.getElementById("hubTitle");
+    const hubCatBadge = document.getElementById("hubCatBadge");
+    const hubInfoBox = document.getElementById("hubInfoBox");
+
+    if (hubTitle) hubTitle.innerHTML = data.title;
+    if (hubCatBadge) hubCatBadge.textContent = data.badge;
+    if (hubInfoBox) hubInfoBox.innerHTML = data.info;
+
+    document.querySelectorAll("#hubLevelPills .filter-pill").forEach(p => p.classList.remove("active"));
+    const pillAll = document.getElementById("pillHubAll");
+    if (pillAll) pillAll.classList.add("active");
+
+    renderHubProducts();
+
+    if (overlay && modal) {
+        overlay.classList.add("show");
+        modal.classList.add("show");
+        document.body.style.overflow = "hidden";
+    }
+};
+
+const closeConcoursHub = () => {
+    const overlay = document.getElementById("concoursHubOverlay");
+    const modal = document.getElementById("concoursHubModal");
+    if (overlay && modal) {
+        overlay.classList.remove("show");
+        modal.classList.remove("show");
+        document.body.style.overflow = "";
+    }
+};
+
+const filterHubDocsByLevel = (level) => {
+    currentHubLevelFilter = level;
+    document.querySelectorAll("#hubLevelPills .filter-pill").forEach(p => p.classList.remove("active"));
+    
+    if (level === 'all') document.getElementById("pillHubAll")?.classList.add("active");
+    if (level === 'BFEM') document.getElementById("pillHubBFEM")?.classList.add("active");
+    if (level === 'BAC') document.getElementById("pillHubBAC")?.classList.add("active");
+    if (level === 'LICENCE') document.getElementById("pillHubLicence")?.classList.add("active");
+
+    renderHubProducts();
+};
+
+const renderHubProducts = () => {
+    const grid = document.getElementById("hubProductsGrid");
+    if (!grid) return;
+
+    let matches = PRODUCTS.filter(p => {
+        const cat = (p.category || "").toLowerCase();
+        const title = (p.title || "").toLowerCase();
+        const desc = (p.desc || "").toLowerCase();
+        const key = currentHubConcoursKey;
+
+        if (key === "douanes") return cat === "douane" || title.includes("douan") || desc.includes("douan");
+        if (key === "ena") return title.includes("ena") || desc.includes("ena") || title.includes("magistrat") || title.includes("greffier");
+        if (key === "police") return title.includes("police") || desc.includes("police");
+        if (key === "securite") return cat === "securite" || title.includes("police") || title.includes("gendarme") || title.includes("douane") || title.includes("ensoa");
+        if (key === "sante") return cat === "sante" || title.includes("sage") || title.includes("inseps") || title.includes("udes");
+        if (key === "grandes-ecoles") return cat === "grandes-ecoles" || title.includes("ept") || title.includes("esp") || title.includes("polytech");
+        if (key === "enseignement") return cat === "enseignement" || title.includes("fastef") || title.includes("crem") || title.includes("professeur");
+
+        return cat === key;
+    });
+
+    if (matches.length === 0) {
+        matches = PRODUCTS.slice(0, 6);
+    }
+
+    if (currentHubLevelFilter !== "all") {
+        const lvl = currentHubLevelFilter;
+        matches = matches.filter(p => {
+            const title = (p.title || "").toUpperCase();
+            const desc = (p.desc || "").toUpperCase();
+            if (lvl === "BFEM") return title.includes("BFEM") || desc.includes("BFEM") || title.includes("3ÈMET") || title.includes("AGENT") || title.includes("PRÉPOSÉ");
+            if (lvl === "BAC") return title.includes("BAC") || desc.includes("BAC") || title.includes("CONTRÔLEUR") || title.includes("GARDIEN") || title.includes("SAGE-FEMME") || title.includes("EPT");
+            if (lvl === "LICENCE") return title.includes("ENA") || title.includes("INSPECTEUR") || title.includes("FASTEF") || title.includes("MAGISTRAT") || title.includes("OFFICIER") || title.includes("GREFFIER") || title.includes("LICENCE");
+            return true;
+        });
+    }
+
+    if (matches.length === 0) {
+        grid.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: var(--text-muted);">
+                <span>📭</span> Aucun document disponible pour le niveau <strong>${currentHubLevelFilter}</strong> pour ce concours.
+                <button class="btn-primary btn-sm" style="display:block; margin: 0.75rem auto 0 auto;" onclick="filterHubDocsByLevel('all')">Voir tous les niveaux →</button>
+            </div>`;
+        return;
+    }
+
+    grid.innerHTML = matches.map(p => `
+        <div style="background: white; border: 1px solid var(--border); border-radius: 8px; padding: 0.85rem; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+                <span class="product-cat-label ${p.catLabel || 'cat-lbl-admin'}" style="font-size:0.7rem; padding:0.15rem 0.4rem;">${p.catName || p.type}</span>
+                <h4 style="font-size: 0.9rem; color: var(--blue-deep); margin: 0.4rem 0 0.2rem 0; line-height: 1.3;">${p.title}</h4>
+                <p style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 0.6rem;">${(p.desc || '').slice(0, 70)}...</p>
+            </div>
+            <div>
+                <strong style="color: var(--orange-dark); font-size: 0.95rem; display: block; margin-bottom: 0.5rem;">${formatPrice(p.price)}</strong>
+                <div style="display: flex; gap: 0.35rem;">
+                    <button class="btn-secondary btn-sm" onclick="openDocumentPreview('${p.id}')" style="flex:1; padding:0.35rem 0.3rem; font-size:0.75rem;">👁️ Aperçu (10p.)</button>
+                    <button class="btn-add" data-id="${p.id}" style="flex:1; padding:0.35rem 0.3rem; font-size:0.75rem;">🛒 Acheter</button>
+                </div>
+            </div>
+        </div>
+    `).join("");
+
+    grid.querySelectorAll(".btn-add").forEach(btn => {
+        btn.addEventListener("click", () => addToCart(parseInt(btn.getAttribute("data-id"))));
+    });
+};
+
+window.openConcoursHub = openConcoursHub;
+window.closeConcoursHub = closeConcoursHub;
+window.filterHubDocsByLevel = filterHubDocsByLevel;
+
+document.addEventListener("DOMContentLoaded", () => {
+    const concoursClose = document.getElementById("concoursHubClose");
+    const concoursOverlay = document.getElementById("concoursHubOverlay");
+
+    if (concoursClose) concoursClose.addEventListener("click", closeConcoursHub);
+    if (concoursOverlay) concoursOverlay.addEventListener("click", closeConcoursHub);
+
+    document.querySelectorAll("#concours .btn-concours-access, #concours .concours-card").forEach(card => {
+        card.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const cardElem = card.closest(".concours-card") || card;
+            const filterAttr = card.getAttribute("data-filter") || cardElem.getAttribute("data-concours") || "douanes";
+            openConcoursHub(filterAttr);
+        });
+    });
+});
+
+// ==========================================
+//  CHARIOW BENCHMARKED WHATSAPP & AFFILIATE LOGIC
+// ==========================================
+const checkoutViaWhatsApp = () => {
+    if (cart.length === 0) {
+        showToast("⚠️", "Votre panier est vide");
+        return;
+    }
+
+    let itemsList = cart.map(i => `• ${i.title} (${formatPrice(i.price)})`).join("\n");
+    let total = cart.reduce((sum, item) => sum + item.price, 0);
+
+    // ADMIN TRACKING: Record the order
+    recordAdminOrder(cart, total);
+
+    const msg = encodeURIComponent(`Bonjour SK ACADEMIA, je souhaite commander les documents suivants dans mon panier :\n\n${itemsList}\n\nTotal à payer : ${formatPrice(total)}.\n\nMerci de m'envoyer les instructions Wave / Orange Money pour la livraison numérique immédiate.`);
+    
+    window.open(`https://wa.me/221765749343?text=${msg}`, "_blank");
+};
+
+const openAffiliateModal = () => {
+    const overlay = document.getElementById("affiliateOverlay");
+    const modal = document.getElementById("affiliateModal");
+    if (overlay && modal) {
+        overlay.classList.add("show");
+        modal.classList.add("show");
+        document.body.style.overflow = "hidden";
+    }
+};
+
+const closeAffiliateModal = () => {
+    const overlay = document.getElementById("affiliateOverlay");
+    const modal = document.getElementById("affiliateModal");
+    if (overlay && modal) {
+        overlay.classList.remove("show");
+        modal.classList.remove("show");
+        document.body.style.overflow = "";
+    }
+};
+
+const copyReferralLink = () => {
+    const input = document.getElementById("referralLinkInput");
+    if (input) {
+        input.select();
+        navigator.clipboard.writeText(input.value);
+        showToast("📋", "Lien de parrainage copié dans le presse-papier !");
+    }
+};
+
+const shareReferralWhatsApp = () => {
+    const input = document.getElementById("referralLinkInput");
+    const url = input ? input.value : "https://skacademia.sn";
+    const msg = encodeURIComponent(`Salut ! Découvre les meilleurs fascicules et annales officiels pour réussir les concours au Sénégal sur SK ACADEMIA 🇸🇳. Rejoins via mon lien et bénéficie de -10% : ${url}`);
+    window.open(`https://wa.me/?text=${msg}`, "_blank");
+};
+
+window.checkoutViaWhatsApp = checkoutViaWhatsApp;
+window.openAffiliateModal = openAffiliateModal;
+window.closeAffiliateModal = closeAffiliateModal;
+window.copyReferralLink = copyReferralLink;
+window.shareReferralWhatsApp = shareReferralWhatsApp;
+
+document.addEventListener("DOMContentLoaded", () => {
+    const closeBtn = document.getElementById("affiliateClose");
+    const overlay = document.getElementById("affiliateOverlay");
+    if (closeBtn) closeBtn.addEventListener("click", closeAffiliateModal);
+    if (overlay) overlay.addEventListener("click", closeAffiliateModal);
+});
+
+// ==========================================
+//  ONLINE TRAINING SUBSCRIPTION LOGIC
+// ==========================================
+const openSubscriptionModal = () => {
+    const user = getCurrentUser();
+    if (!user) {
+        showToast("🔑", "Veuillez vous connecter pour souscrire à un abonnement Formation.");
+        openAuthModal("login");
+        return;
+    }
+    const overlay = document.getElementById("subscriptionOverlay");
+    const modal = document.getElementById("subscriptionModal");
+    if (overlay && modal) {
+        overlay.classList.add("show");
+        modal.classList.add("show");
+        document.body.style.overflow = "hidden";
+    }
+};
+
+const closeSubscriptionModal = () => {
+    const overlay = document.getElementById("subscriptionOverlay");
+    const modal = document.getElementById("subscriptionModal");
+    if (overlay && modal) {
+        overlay.classList.remove("show");
+        modal.classList.remove("show");
+        document.body.style.overflow = "";
+    }
+};
+
+const subscribeToPlan = (planName, price) => {
+    const user = getCurrentUser();
+    if (!user) {
+        openAuthModal("login");
+        return;
+    }
+
+    closeSubscriptionModal();
+    showToast("⏳", `Initialisation de l'abonnement ${planName} (${formatPrice(price)})... Veuillez valider le paiement.`, 4000);
+
+    setTimeout(() => {
+        user.isSubscribed = true;
+        user.subscriptionPlan = planName;
+        user.subscriptionDate = new Date().toLocaleDateString('fr-FR');
+        setCurrentUser(user);
+
+        const users = getUsers();
+        const uIdx = users.findIndex(u => u.email === user.email);
+        if (uIdx > -1) {
+            users[uIdx] = user;
+            saveUsers(users);
+        }
+
+        updateAuthUI();
+        updateGatedSections();
+        renderStudentDashboard();
+
+        showToast("🎉", `Félicitations ${user.firstName} ! Votre abonnement ${planName} est désormais actif sur toutes les Formations en Ligne.`);
+    }, 3000);
+};
+
+window.openSubscriptionModal = openSubscriptionModal;
+window.closeSubscriptionModal = closeSubscriptionModal;
+window.subscribeToPlan = subscribeToPlan;
+
+document.addEventListener("DOMContentLoaded", () => {
+    const subClose = document.getElementById("subscriptionClose");
+    const subOverlay = document.getElementById("subscriptionOverlay");
+    if (subClose) subClose.addEventListener("click", closeSubscriptionModal);
+    if (subOverlay) subOverlay.addEventListener("click", closeSubscriptionModal);
+});
+
+/* ============================================
+   📊 ADMIN DASHBOARD LOGIC (Simulation & Storage)
+   ============================================ */
+
+const getAdminData = () => {
+    try {
+        return JSON.parse(localStorage.getItem('sk_admin_data')) || {
+            orders: [],
+            abandonedCarts: [],
+            activityLog: [],
+            dailyStats: {} // format: "YYYY-MM-DD": { revenue: 0, orders: 0, visitors: 0 }
+        };
+    } catch {
+        return { orders: [], abandonedCarts: [], activityLog: [], dailyStats: {} };
+    }
+};
+
+const saveAdminData = (data) => {
+    localStorage.setItem('sk_admin_data', JSON.stringify(data));
+};
+
+const addActivityLog = (msg) => {
+    const data = getAdminData();
+    data.activityLog.unshift({ time: new Date().toISOString(), msg });
+    if (data.activityLog.length > 20) data.activityLog.pop();
+    saveAdminData(data);
+};
+
+// Hooked into checkoutViaWhatsApp
+const recordAdminOrder = (cartItems, total) => {
+    const user = getCurrentUser();
+    const data = getAdminData();
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Save Order
+    data.orders.unshift({
+        id: 'CMD-' + Date.now().toString().slice(-6),
+        date: new Date().toISOString(),
+        client: user ? `${user.firstName} ${user.lastName}` : "Visiteur non connecté",
+        items: cartItems.map(i => i.title).join(", "),
+        total: total,
+        status: "En attente de paiement (WhatsApp)"
+    });
+
+    // Update Daily Stats
+    if (!data.dailyStats[today]) data.dailyStats[today] = { revenue: 0, orders: 0, visitors: Math.floor(Math.random() * 50) + 10 };
+    data.dailyStats[today].revenue += total;
+    data.dailyStats[today].orders += 1;
+
+    // Remove from abandoned if it was there
+    data.abandonedCarts = data.abandonedCarts.filter(c => c.client !== (user ? user.email : "Visiteur non connecté"));
+
+    saveAdminData(data);
+    addActivityLog(`🛒 Nouvelle commande de ${formatPrice(total)} par ${user ? user.firstName : 'un visiteur'}.`);
+    if(document.getElementById('adminTabOverview')) renderAdminDashboard();
+};
+
+// Hooked into closeCartSidebar
+const recordAbandonedCart = (cartItems) => {
+    const user = getCurrentUser();
+    const data = getAdminData();
+    const total = cartItems.reduce((sum, item) => sum + item.price, 0);
+    const clientKey = user ? user.email : "Visiteur non connecté";
+
+    // Remove old cart for this user
+    data.abandonedCarts = data.abandonedCarts.filter(c => c.client !== clientKey);
+    
+    // Save new cart
+    data.abandonedCarts.unshift({
+        id: 'ABN-' + Date.now().toString().slice(-6),
+        date: new Date().toISOString(),
+        client: clientKey,
+        phone: user ? user.phone : null,
+        items: cartItems.map(i => i.title).join(", "),
+        total: total
+    });
+
+    saveAdminData(data);
+};
+
+// Simulate Live Traffic for Demo
+let liveVisitorInterval;
+const simulateLiveTraffic = () => {
+    const el = document.getElementById("adminLiveVisitors");
+    if (!el) return;
+    
+    let base = Math.floor(Math.random() * 30) + 15;
+    el.textContent = base;
+    
+    clearInterval(liveVisitorInterval);
+    liveVisitorInterval = setInterval(() => {
+        let fluctuation = Math.floor(Math.random() * 5) - 2; // -2 to +2
+        base = Math.max(5, base + fluctuation);
+        el.textContent = base;
+        
+        // Randomly simulate a new activity log
+        if (Math.random() > 0.95) {
+            addActivityLog("👁️ Un nouveau visiteur est sur la page 'Préparation Concours'.");
+            renderActivityLog();
+        }
+    }, 4000);
+};
+
+// Tab Switching
+window.switchAdminTab = (tabId) => {
+    document.querySelectorAll('.admin-tab-content').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('.admin-nav-btn').forEach(el => el.classList.remove('active'));
+    
+    document.getElementById(`adminTab${tabId.charAt(0).toUpperCase() + tabId.slice(1)}`).classList.remove('hidden');
+    document.querySelector(`.admin-nav-btn[onclick="switchAdminTab('${tabId}')"]`).classList.add('active');
+
+    if (tabId === 'analytics') {
+        renderAdminCharts();
+    }
+};
+
+const formatDate = (isoString) => {
+    const d = new Date(isoString);
+    return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+};
+
+const renderActivityLog = () => {
+    const logEl = document.getElementById("adminActivityLog");
+    if (!logEl) return;
+    const data = getAdminData();
+    logEl.innerHTML = data.activityLog.length === 0 
+        ? `<li style="color:var(--text-muted); font-size:0.9rem;">Aucune activité récente.</li>` 
+        : data.activityLog.map(log => `
+            <li class="admin-log-item">
+                <span style="font-size: 0.9rem;">${log.msg}</span>
+                <span style="font-size: 0.8rem; color: var(--text-light);">${formatDate(log.time)}</span>
+            </li>
+        `).join("");
+};
+
+const renderAdminDashboard = () => {
+    const data = getAdminData();
+    const users = getUsers();
+    
+    // Overview Totals
+    const totalRevenue = data.orders.reduce((sum, o) => sum + o.total, 0);
+    if(document.getElementById("adminTotalRevenue")) document.getElementById("adminTotalRevenue").textContent = formatPrice(totalRevenue);
+    if(document.getElementById("adminTotalOrders")) document.getElementById("adminTotalOrders").textContent = data.orders.length;
+    if(document.getElementById("adminTotalAbandoned")) document.getElementById("adminTotalAbandoned").textContent = data.abandonedCarts.length;
+    if(document.getElementById("adminTotalUsers")) document.getElementById("adminTotalUsers").textContent = users.length;
+    
+    // Activity Log
+    renderActivityLog();
+
+    // Orders Table
+    const ordersTbody = document.getElementById("adminOrdersTableBody");
+    if (ordersTbody) {
+        ordersTbody.innerHTML = data.orders.length === 0 
+            ? `<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Aucune commande enregistrée.</td></tr>`
+            : data.orders.map(o => `
+                <tr>
+                    <td style="font-size:0.85rem; color:var(--text-muted);">${formatDate(o.date)}</td>
+                    <td style="font-weight:600; color:var(--blue-deep);">${sanitizeHTML(o.client)}</td>
+                    <td style="font-size:0.85rem;">${sanitizeHTML(o.items)}</td>
+                    <td style="font-weight:700; color:var(--orange-dark);">${formatPrice(o.total)}</td>
+                    <td><span style="background:#fef3c7; color:#d97706; padding:0.2rem 0.6rem; border-radius:20px; font-size:0.75rem; font-weight:700;">${o.status}</span></td>
+                </tr>
+            `).join("");
+    }
+
+    // Abandoned Carts Table
+    const abandonedTbody = document.getElementById("adminAbandonedTableBody");
+    if (abandonedTbody) {
+        abandonedTbody.innerHTML = data.abandonedCarts.length === 0 
+            ? `<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Aucun panier abandonné.</td></tr>`
+            : data.abandonedCarts.map(c => {
+                const waLink = c.phone ? `https://wa.me/${c.phone}?text=${encodeURIComponent(`Bonjour, nous avons remarqué que vous avez laissé des fascicules très importants dans votre panier sur SK ACADEMIA. Pouvons-nous vous aider à finaliser votre préparation ?`)}` : "#";
+                return `
+                <tr>
+                    <td style="font-size:0.85rem; color:var(--text-muted);">${formatDate(c.date)}</td>
+                    <td style="font-weight:600;">${sanitizeHTML(c.client)}</td>
+                    <td style="font-size:0.85rem;">${sanitizeHTML(c.items)}</td>
+                    <td style="font-weight:700;">${formatPrice(c.total)}</td>
+                    <td>
+                        ${c.phone 
+                            ? `<a href="${waLink}" target="_blank" style="background:#25D366; color:white; padding:0.4rem 0.8rem; border-radius:6px; font-size:0.8rem; font-weight:600; display:inline-block;">📲 Relancer</a>` 
+                            : `<span style="color:var(--text-light); font-size:0.8rem;">Sans téléphone</span>`}
+                    </td>
+                </tr>
+            `}).join("");
+    }
+};
+
+// Chart.js Rendering
+let chartInstances = {};
+const renderAdminCharts = () => {
+    if (typeof Chart === 'undefined') return;
+    
+    const data = getAdminData();
+    const today = new Date();
+    const labels = [];
+    const revData = [];
+    const orderData = [];
+    const visitorData = [];
+
+    // Generate last 7 days
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+        const key = d.toISOString().split('T')[0];
+        const label = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' });
+        
+        labels.push(label);
+        const dayStats = data.dailyStats[key] || { revenue: 0, orders: 0, visitors: Math.floor(Math.random() * 20) + 5 }; // fallback dummy visitors
+        revData.push(dayStats.revenue);
+        orderData.push(dayStats.orders);
+        visitorData.push(dayStats.visitors);
+    }
+
+    // Revenue Chart
+    const ctxRev = document.getElementById('revenueChart');
+    if (ctxRev) {
+        if (chartInstances['rev']) chartInstances['rev'].destroy();
+        chartInstances['rev'] = new Chart(ctxRev, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Chiffre d\'Affaires (FCFA)',
+                    data: revData,
+                    borderColor: '#f5a623',
+                    backgroundColor: 'rgba(245, 166, 35, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+
+    // Traffic vs Orders Chart
+    const ctxTraf = document.getElementById('trafficChart');
+    if (ctxTraf) {
+        if (chartInstances['traf']) chartInstances['traf'].destroy();
+        chartInstances['traf'] = new Chart(ctxTraf, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Visiteurs Uniques',
+                        data: visitorData,
+                        backgroundColor: '#e8f0fe',
+                        borderColor: '#3b82f6',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Commandes',
+                        data: orderData,
+                        backgroundColor: '#102a4a',
+                        borderWidth: 0
+                    }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+};
+
+// Initialize Dashboard if user is admin
+document.addEventListener("DOMContentLoaded", () => {
+    // Hook into SPA navigation to detect admin route
+    const originalNavigateTo = window.navigateTo || navigateTo;
+    window.navigateTo = (hash) => {
+        originalNavigateTo(hash);
+        let target = hash.replace("#", "") || "accueil";
+        if (target === 'admin') {
+            const user = getCurrentUser();
+            if (!user || user.email.toLowerCase() !== 'admin@skacademia.sn') {
+                showToast("⛔", "Accès refusé. Réservé à l'administrateur.");
+                window.navigateTo("accueil");
+                return;
+            }
+            renderAdminDashboard();
+            simulateLiveTraffic();
+            if (document.getElementById('adminTabAnalytics') && !document.getElementById('adminTabAnalytics').classList.contains('hidden')) {
+                renderAdminCharts();
+            }
+        } else {
+            clearInterval(liveVisitorInterval);
+        }
+    };
+});
+
+// Initial render
+setTimeout(() => {
+    renderAdminProducts();
+    renderStudentDashboard();
+}, 500);
