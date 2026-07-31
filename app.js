@@ -1416,15 +1416,15 @@ if (chatbotToggler && chatbotWindow) {
 
         if (isThanks) {
             if (["jerejef", "jaajuf", "dieuredieuff", "diereudieuf"].some(k => text.includes(k))) {
-                return "Jerejef ak yokkute ! Nooko bokk ci SK ACADEMIA. Yalla na nga am ndam ci sa concours yi ! 👋";
+                return "Jerejef ak yokkute ! Nooko bokk. Yalla na nga am ndam ci sa concours yi ! N'hésite pas si tu as d'autres questions. 👋";
             }
             if (["gracias"].some(k => text.includes(k))) {
-                return "¡De nada! Ha sido un placer ayudarte. ¡Mucho éxito en tus exámenes y hasta pronto! 👋";
+                return "¡De nada! Ha sido un placer. ¡Mucho éxito y hasta pronto! 👋";
             }
             if (["thanks", "thank you"].some(k => text.includes(k))) {
-                return "You're very welcome! It was a pleasure assisting you. Best of luck with your exam preparation! 👋";
+                return "You're very welcome! Best of luck with your prep! 👋";
             }
-            return "Je vous en prie ! Ce fut un plaisir de vous renseigner. Excellente journée et beaucoup de succès dans vos révisions et concours ! 👋";
+            return "Je t'en prie, c'est avec un grand plaisir ! N'hésite pas si tu as besoin d'autres documents. Beaucoup de succès dans tes révisions et à très vite ! 👋";
         }
 
         // ==========================================
@@ -1435,45 +1435,45 @@ if (chatbotToggler && chatbotWindow) {
         const isWolof = ["nanga def", "na nga def", "naka mu dem", "naka la", "jaajuf", "jajuf", "dieuredieuff", "diereudieuf", "lu bes", "lu bess", "ban concours", "nooko bokk", "waaw", "dakar", "senegal"].some(k => text.includes(k));
         if (isWolof) {
             if (["nanga def", "na nga def", "naka mu dem", "naka la", "salut", "bonjour", "lu bes"].some(k => text.includes(k))) {
-                return "Nanga def ! Jama nga am ci SK ACADEMIA. Naka laay la meune dimbali tey ci sa révisions wala ci concours yi (ENA, Police, CREM, FASTEF, Santé) ?";
+                return "Nanga def ! Jama nga am ci SK ACADEMIA. Man la Moussa, naka laay la meune dimbali tey ci sa révisions concours (ENA, Police, CREM, FASTEF) ?";
             }
             if (["prix", "combien", "niata", "ñaata", "fcfa"].some(k => text.includes(k))) {
-                return "💰 Nos fascicules varie nga diggante 5 000 FCFA ak 18 000 FCFA. Mën nga fey par Wave wala Orange Money ci boutique bi !";
+                return "💰 Sunu fascicules yi dafa gën a yomb. Dafa varyé diggante 5 000 FCFA ak 18 000 FCFA. Mën nga fey par Wave wala Orange Money direct ci site bi !";
             }
             if (["document", "fascicule", "pdf", "am", "disponible"].some(k => text.includes(k))) {
-                return "📄 Am nañu fascicules yu barré : ENA, Police, Gendarmerie, Douanes, CREM, FASTEF, Ak Santé. Ban concours nga soxla ?";
+                return "📄 Am nañu lepp lu lay préparé : ENA, Police, Douanes, CREM, FASTEF, Santé. Ban concours mo la gën a intéresser ?";
             }
-            return "Jerejef ! Man la Moussa, conseiller commercial SK ACADEMIA. Naka laay la meune dimbali ci sa préparation concours ?";
+            return "Jerejef ! Man la Moussa. Naka laay la meune dimbali ci sa préparation concours ?";
         }
 
         // SPANISH DETECTION
         const isSpanish = ["hola", "buenos dias", "buenas tardes", "buenas noches", "como estas", "gracias", "cuanto cuesta", "precio", "espanol", "español", "documentos"].some(k => text.includes(k));
         if (isSpanish) {
             if (["hola", "buenos dias", "buenas tardes", "buenas noches"].some(k => text.includes(k))) {
-                return "¡Hola! Bienvenido a SK ACADEMIA. ¿Cómo puedo ayudarte hoy con la preparación de tus exámenes o concursos en Senegal?";
+                return "¡Hola! Soy Moussa, tu asesor en SK ACADEMIA. ¿Cómo puedo ayudarte hoy con la preparación de tus concursos?";
             }
             if (["precio", "cuanto cuesta", "tarifa"].some(k => text.includes(k))) {
-                return "💰 Nuestros resúmenes y exámenes resueltos cuestan entre 5 000 FCFA y 18 000 FCFA. ¡Puedes pagar directamente con Wave u Orange Money!";
+                return "💰 Nuestros documentos cuestan entre 5 000 FCFA y 18 000 FCFA. ¡Pagos muy fáciles con Wave u Orange Money!";
             }
             if (["documento", "documentos", "disponible"].some(k => text.includes(k))) {
-                return "📄 Tenemos disponibles materiales para ENA, Policía, Guardia Civil, Aduanas, FASTEF (Español/Letras) y Salud. ¿Cuál necesitas?";
+                return "📄 Tenemos de todo: ENA, Policía, Aduanas, FASTEF y Salud. ¿Qué preparas exactamente?";
             }
-            return "¡Muchas gracias! Estoy a tu disposición para ayudarte a elegir el mejor material de estudio.";
+            return "¡Muchas gracias! Estoy aquí para ayudarte a elegir el mejor material.";
         }
 
         // ENGLISH DETECTION
         const isEnglish = ["hello", "hi", "good morning", "good evening", "how are you", "thanks", "thank you", "what is", "how much", "price", "available", "documents"].some(k => text.includes(k));
         if (isEnglish) {
             if (["hello", "hi", "good morning", "good evening"].some(k => text.includes(k))) {
-                return "Hello! Welcome to SK ACADEMIA. How can I assist you today with your exam prep or document purchases?";
+                return "Hello there! I'm Moussa from SK ACADEMIA. How can I help you crush your exams today?";
             }
             if (["price", "how much", "cost"].some(k => text.includes(k))) {
-                return "💰 Our study booklets and past papers range from 5,000 FCFA to 18,000 FCFA. You can pay easily via Wave or Orange Money!";
+                return "💰 Our past papers range from 5,000 FCFA to 18,000 FCFA. You can pay via Wave or Orange Money directly!";
             }
             if (["document", "documents", "available", "pdf"].some(k => text.includes(k))) {
-                return "📄 We have prep books available for ENA, Police, Customs, Health/Midwife exams, FASTEF, and IT courses. Which one are you looking for?";
+                return "📄 We got prep books for ENA, Police, Customs, Health, FASTEF, and IT. Which one do you need?";
             }
-            return "Thank you for reaching out! Feel free to ask any questions regarding our exams, courses, and learning resources.";
+            return "Thanks for reaching out! Just ask me anything about our prep materials.";
         }
 
         // ==========================================
@@ -1481,15 +1481,15 @@ if (chatbotToggler && chatbotWindow) {
         // ==========================================
 
         // Détection des salutations simples en Français
-        const GREETING_WORDS = ["bnsr", "bonsoir", "bsr", "bonjour", "salut", "coucou", "salam", "hello", "bonsoir moussa", "bonjour moussa"];
+        const GREETING_WORDS = ["bnsr", "bonsoir", "bsr", "bonjour", "salut", "coucou", "salam", "hello", "bonsoir moussa", "bonjour moussa", "bjr"];
         const words = text.split(/\s+/).filter(w => w.length > 0);
         const isPureGreeting = words.every(w => GREETING_WORDS.includes(w) || w === "!" || w === "?" || w === "sk");
 
-        if (isPureGreeting || text === "bnsr" || text === "bonsoir" || text === "bonjour" || text === "salut") {
+        if (isPureGreeting || GREETING_WORDS.some(g => text === g)) {
             if (text.includes("bonsoir") || text.includes("bnsr") || text.includes("bsr")) {
-                return "Bonsoir ! Comment puis-je vous aider aujourd'hui sur SK ACADEMIA ?";
+                return "Bonsoir ! Moi c'est Moussa de SK ACADEMIA. Vous préparez quel concours actuellement ?";
             }
-            return "Bonjour ! Comment puis-je vous aider aujourd'hui sur SK ACADEMIA ?";
+            return "Bonjour ! C'est Moussa à votre service. Quel concours ou quelle formation vous intéresse aujourd'hui ?";
         }
 
         // Question spécifique sur la liste des documents disponibles
@@ -1502,74 +1502,74 @@ if (chatbotToggler && chatbotWindow) {
 
         if (isAskingAvailableDocs) {
             const topDocs = (PRODUCTS && PRODUCTS.length > 0) ? PRODUCTS.slice(0, 7) : DEFAULT_PRODUCTS.slice(0, 7);
-            let docsListHtml = topDocs.map(p => `<li>• <strong>${p.title}</strong> (${p.catName || 'Concours'}) — <span style="color:var(--orange-dark); font-weight:600;">${formatPrice(p.price)}</span></li>`).join("");
+            let docsListHtml = topDocs.map(p => `<li>• <strong>${p.title}</strong> — <span style="color:var(--orange-dark); font-weight:600;">${formatPrice(p.price)}</span></li>`).join("");
 
             return `
-                <p style="margin-bottom:0.5rem;">Voici la liste des documents et fascicules actuellement disponibles sur SK ACADEMIA :</p>
+                <p style="margin-bottom:0.5rem;">On a un excellent catalogue ! Voici les fascicules les plus demandés en ce moment :</p>
                 <ul style="padding-left:0.5rem; margin-bottom:0.75rem; display:flex; flex-direction:column; gap:0.4rem; list-style:none;">
                     ${docsListHtml}
                 </ul>
-                <p>Lequel de ces concours vous intéresse ?</p>
+                <p>Lequel de ces concours vous ciblez ?</p>
             `;
         }
 
-        // Réponses encyclopédiques & thématiques ciblées
+        // Réponses thématiques ciblées (Plus directes et commerciales)
         const responses = [];
 
-        // CONCOURS ENSEIGNEMENT & DOMAINES ACADÉMIQUES (CREM, FASTEF, UGB, ESPAGNOLE, LETTRES)
+        // CONCOURS ENSEIGNEMENT & DOMAINES ACADÉMIQUES
         if (["crem", "fastef", "ugb", "enseignement", "instituteur", "professeur", "espagnol", "lettres", "pedagogie", "pédagogie", "leçon d'essai"].some(k => text.includes(k))) {
-            responses.push("📚 **Concours de l'Enseignement (CREM, FASTEF, UGB)** : Nous proposons les fiches méthodologiques pour la leçon d'essai, la dissertation pédagogique ainsi que les annales résolues par option (Espagnol, Lettres, Mathématiques, SVT, PC) pour tous les niveaux.");
+            responses.push("📚 **Concours de l'Enseignement (CREM, FASTEF)** : On a exactement ce qu'il vous faut ! Nos fiches méthodologiques pour la leçon d'essai et la dissertation pédagogique sont de vraies pépites, sans parler de nos annales résolues.");
         }
 
         // GESTION, COMPTABILITÉ, FINANCE & RH
         if (["comptabilité", "comptabilite", "finance", "rh", "ressources humaines", "gestion", "paie", "recrutement", "ohada", "bilan"].some(k => text.includes(k))) {
-            responses.push("📊 **Gestion, Comptabilité, Finance & RH** : Nos ressources couvrent le système comptable SYSCOHADA, l'analyse financière, la gestion de la paie et le droit du travail sénégalais avec exercices corrigés.");
+            responses.push("📊 **Gestion & RH** : C'est très pointu. Nos documents couvrent le SYSCOHADA, l'analyse financière et la paie avec des exercices corrigés très pratiques.");
         }
 
-        // INFORMATIQUE & COMPÉTENCES DIGITALES (IA, Web, Python, Excel)
+        // INFORMATIQUE & COMPÉTENCES DIGITALES
         if (["informatique", "web", "programmation", "excel", "bureautique", "ia", "intelligence artificielle", "code", "python"].some(k => text.includes(k))) {
-            responses.push("💻 **Informatique & Nouvelles Technologies** : Nos modules incluent l'IA Appliquée, le Développement Web (HTML/CSS/JS/Python) et la maîtrise d'Excel Avancé avec travaux pratiques certifiants.");
+            responses.push("💻 **Informatique & IA** : Super domaine ! On propose des modules bétons en Développement Web, Maîtrise d'Excel et IA Appliquée. C'est parfait pour booster vos compétences.");
         }
 
-        // ADMINISTRATION & JUSTICE (ENA, Magistrature, Greffe)
-        if (["ena", "magistrat", "greffier", "crem", "droit", "administration", "justice"].some(k => text.includes(k))) {
-            responses.push("🏛️ **Administration & Justice (ENA, Magistrature, Greffe)** : Fascicules complets en droit public/administratif, culture générale régionale et 10 ans d'annales corrigées.");
+        // ADMINISTRATION & JUSTICE
+        if (["ena", "magistrat", "greffier", "droit", "administration", "justice"].some(k => text.includes(k))) {
+            responses.push("🏛️ **Administration (ENA, Magistrature)** : Pour l'ENA, le secret c'est la préparation. On a la culture générale régionale et 10 ans d'annales corrigées. Vous allez faire la différence.");
         }
 
-        // SÉCURITÉ & DÉFENSE (Police, Gendarmerie, Douanes, ENSOA)
+        // SÉCURITÉ & DÉFENSE
         if (["police", "gendarmerie", "douane", "douanes", "sécurité", "securite", "ensoa", "armée"].some(k => text.includes(k))) {
-            responses.push("🛡️ **Sécurité & Défense (Police, Gendarmerie, Douanes, ENSOA)** : Préparation intégrale aux épreuves écrites (dictée, QCM, maths) et guide d'épreuves physiques.");
+            responses.push("🛡️ **Sécurité & Défense (Police, Gendarmerie, Douanes)** : Concours très physique, mais l'écrit compte énormément ! On a tout le pack (dictée, QCM, maths) pour réussir haut la main.");
         }
 
-        // SANTÉ & SOCIAL (Sage-femme, INSEPS, UDES)
+        // SANTÉ & SOCIAL
         if (["santé", "sante", "sage-femme", "sage femme", "inseps", "udes", "biologie", "infirmier"].some(k => text.includes(k))) {
-            responses.push("🩺 **Santé & Social (Sage-femme, INSEPS, UDES)** : Cours de biologie humaine, chimie, physique et tests psychotechniques avec annales résolues.");
+            responses.push("🩺 **Santé (Sage-femme, INSEPS)** : Les matières scientifiques sont éliminatoires. Nos cours de biologie, physique-chimie et nos tests psychotechniques corrigés vont beaucoup vous aider.");
         }
 
-        // POLYTECHNIQUE & GRANDES ÉCOLES (EPT Thiès, ESP Dakar)
+        // POLYTECHNIQUE & GRANDES ÉCOLES
         if (["polytechnique", "ept", "esp", "thiès", "thies", "dakar", "ingénieur"].some(k => text.includes(k))) {
-            responses.push("📐 **Grandes Écoles (EPT Thiès / ESP Dakar)** : Annales corrigées de mathématiques approfondies et physique-chimie résolues étape par étape.");
+            responses.push("📐 **Polytechnique (EPT/ESP)** : C'est le niveau ingénieur ! On met à disposition des annales corrigées en maths et physique pour vous mettre directement dans le bain.");
         }
 
         // PRIX & TARIFS
         if (["prix", "combien", "tarif", "coût", "cout", "combien coute", "fcfa", "payant"].some(k => text.includes(k))) {
-            responses.push("💰 **Prix & Tarifs** : Nos fascicules et annales varient entre 5 000 FCFA et 18 000 FCFA. Nos formations vidéos complètes sont à partir de 25 000 FCFA.");
+            responses.push("💰 C'est très abordable ! Les fascicules vont de **5 000 FCFA à 18 000 FCFA** maximum. C'est un investissement minime pour assurer votre réussite.");
         }
 
         // PAIEMENT (WAVE / ORANGE MONEY)
-        if (["payer", "paiement", "wave", "orange money", "om", "mode de paiement", "moyen de paiement", "acheter", "achat"].some(k => text.includes(k))) {
-            responses.push("🌊 **Paiement Simple** : Réglez directement par Wave ou Orange Money depuis votre panier. Téléchargement immédiat de vos PDF dès la validation.");
+        if (["payer", "paiement", "wave", "orange money", "om", "mode de paiement", "moyen de paiement", "acheter", "achat", "comment"].some(k => text.includes(k))) {
+            responses.push("🌊 **C'est super simple pour payer** : Ajoutez vos fascicules au panier, cliquez sur 'Commander par WhatsApp' et vous réglez par **Wave** ou **Orange Money**. On vous envoie les PDF instantanément !");
         }
 
         // CONTACT & COMPTE
-        if (["contact", "appeler", "téléphone", "telephone", "whatsapp", "numéro", "numero", "support", "email"].some(k => text.includes(k))) {
-            responses.push("📞 Vous pouvez nous contacter sur WhatsApp via le bouton vert flottant ou par e-mail à contact@skacademia.sn.");
+        if (["contact", "appeler", "téléphone", "telephone", "whatsapp", "numéro", "numero", "support", "email", "joindre"].some(k => text.includes(k))) {
+            responses.push("📞 Vous voulez qu'on en discute de vive voix ? Appelez-moi ou écrivez-moi sur WhatsApp au **76 574 93 43**.");
         }
 
         // Si des réponses thématiques ont été trouvées
         if (responses.length > 0) {
             let greetingPrefix = "";
-            if (text.includes("bonjour") || text.includes("salut") || text.includes("salam") || text.includes("hello")) {
+            if (text.includes("bonjour") || text.includes("salut") || text.includes("salam") || text.includes("hello") || text.includes("bjr")) {
                 greetingPrefix = "Bonjour ! ";
             } else if (text.includes("bonsoir") || text.includes("bnsr") || text.includes("bsr")) {
                 greetingPrefix = "Bonsoir ! ";
@@ -1577,8 +1577,8 @@ if (chatbotToggler && chatbotWindow) {
             return `${greetingPrefix}${responses.join("<br><br>")}`;
         }
 
-        // Réponse d'attente encyclopédique
-        return "Je peux vous renseigner sur tous les concours (ENA, Police, Douanes, CREM, FASTEF, UGB, Santé, EPT), la gestion/comptabilité/RH, l'informatique ou les tarifs (5 000 à 18 000 FCFA). Quelle est votre question ?";
+        // Réponse d'attente (Catch-all) très humaine
+        return "Ah, je n'ai pas bien saisi. 😅 Je suis Moussa, conseiller pour tous les concours (ENA, Police, Douanes, CREM, Santé, etc.). Dites-moi simplement quel concours vous préparez et je vous montre nos meilleurs documents !";
     };
 
     // Real-time typing & response rendering
