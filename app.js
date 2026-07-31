@@ -1896,12 +1896,13 @@ window.deleteProduct = deleteProduct; // Expose globally
 window.openAdminModal = openAdminModal; // Expose globally
 
 const renderAdminProducts = () => {
-    const tbodyAll = document.getElementById("adminProductsTable");
+    const tbodyAll = document.getElementById("adminProductsTableBody");
     const tbodyDocs = document.getElementById("adminDocsTable");
     const tbodyVideos = document.getElementById("adminVideosTable");
 
     const buildRow = (p) => `
         <tr>
+            <td><strong>${p.id || 'N/A'}</strong></td>
             <td><strong>${p.title || 'Sans titre'}</strong></td>
             <td><span class="product-type-badge" style="position:static; display:inline-block">${p.typeName || p.type || 'Fascicule'}</span></td>
             <td><strong>${formatPrice(p.price || 0)}</strong></td>
@@ -1916,6 +1917,66 @@ const renderAdminProducts = () => {
     if (tbodyDocs) tbodyDocs.innerHTML = PRODUCTS.filter(p => p.type && ["fascicule", "annale", "document", "cours", "pdf"].includes(String(p.type).toLowerCase())).map(buildRow).join("");
     if (tbodyVideos) tbodyVideos.innerHTML = PRODUCTS.filter(p => p.type && ["formation", "video", "pack"].includes(String(p.type).toLowerCase())).map(buildRow).join("");
 };
+
+// ==================================
+//  ADMIN: SITE SETTINGS & CUSTOMERS
+// ==================================
+const loadSiteConfig = () => {
+    const defaultConfig = {
+        phone: "+221765749343",
+        email: "contact@skacademia.sn",
+        address: "Dakar, Sénégal"
+    };
+    let config = defaultConfig;
+    try {
+        const stored = localStorage.getItem('sk_site_config');
+        if (stored) config = JSON.parse(stored);
+    } catch(e) {}
+    
+    let displayPhone = config.phone;
+    if (displayPhone.length >= 12 && displayPhone.startsWith("+221")) {
+        displayPhone = `+221 ${displayPhone.slice(4,6)} ${displayPhone.slice(6,9)} ${displayPhone.slice(9,11)} ${displayPhone.slice(11)}`;
+    }
+
+    if (document.getElementById("contactPhoneTop")) document.getElementById("contactPhoneTop").textContent = displayPhone;
+    if (document.getElementById("contactEmailTop")) document.getElementById("contactEmailTop").textContent = config.email;
+    
+    if (document.getElementById("contactPhoneFooter")) document.getElementById("contactPhoneFooter").textContent = displayPhone;
+    if (document.getElementById("contactEmailFooter")) document.getElementById("contactEmailFooter").textContent = config.email;
+    if (document.getElementById("contactAddressFooter")) document.getElementById("contactAddressFooter").textContent = config.address;
+    
+    if (document.getElementById("whatsappFloatLink")) document.getElementById("whatsappFloatLink").href = `https://wa.me/${config.phone.replace('+', '')}`;
+    
+    if (document.getElementById("settingWhatsApp")) document.getElementById("settingWhatsApp").value = config.phone.replace('+', '');
+    if (document.getElementById("settingEmail")) document.getElementById("settingEmail").value = config.email;
+    if (document.getElementById("settingAddress")) document.getElementById("settingAddress").value = config.address;
+};
+
+const renderAdminCustomers = () => {
+    const tbody = document.getElementById("adminCustomersTableBody");
+    if (!tbody) return;
+    
+    const users = getUsers();
+    if (users.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 2rem;">Aucun client inscrit pour le moment.</td></tr>`;
+        return;
+    }
+    
+    tbody.innerHTML = users.map(u => `
+        <tr>
+            <td>${formatDate(u.registeredAt || new Date().toISOString())}</td>
+            <td><strong>${u.firstName} ${u.lastName}</strong></td>
+            <td>${u.email}<br><span style="color:var(--text-muted);font-size:0.8rem;">${u.phone || 'Non renseigné'}</span></td>
+            <td><span class="product-type-badge" style="background:${u.purchases && u.purchases.length > 0 ? '#10b981' : '#f59e0b'}; color:white; border:none;">${(u.purchases && u.purchases.length > 0) ? 'Client Premium' : 'Inscription Gratuite'}</span></td>
+            <td>
+                <a class="btn-primary btn-sm" href="https://wa.me/${(u.phone||'').replace('+','')}" target="_blank" style="text-decoration:none;">💬 WA</a>
+            </td>
+        </tr>
+    `).join("");
+};
+
+window.renderAdminCustomers = renderAdminCustomers;
+window.loadSiteConfig = loadSiteConfig;
 
 // ==================================
 //  STUDENT DASHBOARD RENDERER
@@ -2684,6 +2745,9 @@ const renderAdminDashboard = () => {
     
     // Activity Log
     renderActivityLog();
+    
+    // Render Customers Tab
+    if (typeof renderAdminCustomers === 'function') renderAdminCustomers();
 
     // Orders Table
     const ordersTbody = document.getElementById("adminOrdersTableBody");
@@ -2803,6 +2867,24 @@ const renderAdminCharts = () => {
 
 // Initialize Dashboard if user is admin
 document.addEventListener("DOMContentLoaded", () => {
+    if (typeof loadSiteConfig === 'function') loadSiteConfig();
+    
+    const settingsForm = document.getElementById("adminSettingsForm");
+    if (settingsForm) {
+        settingsForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const newPhone = document.getElementById("settingWhatsApp").value;
+            const newConfig = {
+                phone: newPhone.startsWith('+') ? newPhone : '+' + newPhone,
+                email: document.getElementById("settingEmail").value,
+                address: document.getElementById("settingAddress").value
+            };
+            localStorage.setItem('sk_site_config', JSON.stringify(newConfig));
+            loadSiteConfig();
+            showToast("✅", "Paramètres enregistrés avec succès !");
+        });
+    }
+
     // Hook into SPA navigation to detect admin route
     const originalNavigateTo = window.navigateTo || navigateTo;
     window.navigateTo = (hash) => {

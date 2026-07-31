@@ -1145,14 +1145,14 @@
                     <span style="font-size:1.5rem;">📧</span>
                     <div>
                         <strong style="display:block;color:var(--text-dark);">Email</strong>
-                        <span style="color:var(--text-muted);font-size:0.9rem;">contact@skacademia.sn</span>
+                        <span id="contactEmailTop" style="color:var(--text-muted);font-size:0.9rem;">contact@skacademia.sn</span>
                     </div>
                 </div>
                 <div style="display:flex; align-items:center; gap:1rem; padding:1.25rem; background:var(--bg-section); border-radius:var(--radius); border:1px solid var(--border);">
                     <span style="font-size:1.5rem;">📞</span>
                     <div>
                         <strong style="display:block;color:var(--text-dark);">Téléphone</strong>
-                        <span style="color:var(--text-muted);font-size:0.9rem;">+221 XX XXX XX XX</span>
+                        <span id="contactPhoneTop" style="color:var(--text-muted);font-size:0.9rem;">+221 76 574 93 43</span>
                     </div>
                 </div>
                 <div style="display:flex; align-items:center; gap:1rem; padding:1.25rem; background:var(--bg-section); border-radius:var(--radius); border:1px solid var(--border);">
@@ -1197,9 +1197,9 @@
             </div>
             <div class="footer-col">
                 <h4>Contact</h4>
-                <p>📧 contact@skacademia.sn</p>
-                <p>📞 +221 XX XXX XX XX</p>
-                <p>📍 Dakar, Sénégal</p>
+                <p>📧 <span id="contactEmailFooter">contact@skacademia.sn</span></p>
+                <p>📞 <span id="contactPhoneFooter">+221 76 574 93 43</span></p>
+                <p>📍 <span id="contactAddressFooter">Dakar, Sénégal</span></p>
             </div>
         </div>
         <div class="footer-bottom">
@@ -1208,7 +1208,7 @@
     </footer>
 
     <!-- WHATSAPP FLOAT BUTTON -->
-    <a href="https://wa.me/221XXXXXXXXX" class="whatsapp-float" target="_blank" aria-label="Contactez-nous sur WhatsApp">
+    <a href="https://wa.me/221765749343" id="whatsappFloatLink" class="whatsapp-float" target="_blank" aria-label="Contactez-nous sur WhatsApp">
         💬
     </a>
 
@@ -1399,9 +1399,12 @@
                     </h3>
                     <ul style="display: flex; flex-direction: column; gap: 0.5rem;">
                         <li><button class="admin-nav-btn active" onclick="switchAdminTab('overview')">📊 Vue d'Ensemble</button></li>
-                        <li><button class="admin-nav-btn" onclick="switchAdminTab('orders')">🛒 Commandes</button></li>
+                        <li><button class="admin-nav-btn" onclick="switchAdminTab('products')">📦 Produits</button></li>
+                        <li><button class="admin-nav-btn" onclick="switchAdminTab('customers')">👥 Base Clients</button></li>
+                        <li><button class="admin-nav-btn" onclick="switchAdminTab('orders')">🛒 Ventes</button></li>
                         <li><button class="admin-nav-btn" onclick="switchAdminTab('abandoned')">⚠️ Paniers Abandonnés</button></li>
-                        <li><button class="admin-nav-btn" onclick="switchAdminTab('analytics')">📈 Analytiques (7j)</button></li>
+                        <li><button class="admin-nav-btn" onclick="switchAdminTab('analytics')">📈 Analyse Données</button></li>
+                        <li><button class="admin-nav-btn" onclick="switchAdminTab('settings')">⚙️ Paramètres</button></li>
                     </ul>
                 </div>
 
@@ -1497,6 +1500,73 @@
                         <div style="background: white; border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; box-shadow: var(--shadow-sm);">
                             <h3 style="font-size: 1rem; margin-bottom: 1rem; color: var(--text-muted);">Visiteurs vs Commandes</h3>
                             <canvas id="trafficChart" width="400" height="150"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- TAB 5: PRODUCTS -->
+                    <div id="adminTabProducts" class="admin-tab-content hidden">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                            <h2 style="color: var(--blue-deep);">Gestion des Produits</h2>
+                            <button class="btn btn-primary" onclick="openAddProductModal()">+ Ajouter Produit</button>
+                        </div>
+                        <div style="background: white; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-sm);">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Titre</th>
+                                        <th>Catégorie</th>
+                                        <th>Prix</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminProductsTableBody">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- TAB 6: CUSTOMERS -->
+                    <div id="adminTabCustomers" class="admin-tab-content hidden">
+                        <h2 style="color: var(--blue-deep); margin-bottom: 1.5rem;">Base Clients Inscrits</h2>
+                        <div style="background: white; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-sm);">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Nom Complet</th>
+                                        <th>Email</th>
+                                        <th>Téléphone</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminCustomersTableBody">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- TAB 7: SETTINGS -->
+                    <div id="adminTabSettings" class="admin-tab-content hidden">
+                        <h2 style="color: var(--blue-deep); margin-bottom: 1.5rem;">Paramètres du Site</h2>
+                        <div style="background: white; border: 1px solid var(--border); border-radius: 12px; padding: 2rem; max-width: 600px; box-shadow: var(--shadow-sm);">
+                            <form id="adminSettingsForm" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                                <div>
+                                    <label style="display:block; font-weight:600; margin-bottom:0.5rem; color:var(--text-dark);">Numéro WhatsApp (Indicatif inclus)</label>
+                                    <input type="number" id="settingWhatsApp" placeholder="Ex: 221765749343" required style="width:100%; padding:0.8rem; border:1px solid var(--border); border-radius:8px;">
+                                </div>
+                                <div>
+                                    <label style="display:block; font-weight:600; margin-bottom:0.5rem; color:var(--text-dark);">Email de Contact</label>
+                                    <input type="email" id="settingEmail" placeholder="contact@skacademia.sn" required style="width:100%; padding:0.8rem; border:1px solid var(--border); border-radius:8px;">
+                                </div>
+                                <div>
+                                    <label style="display:block; font-weight:600; margin-bottom:0.5rem; color:var(--text-dark);">Adresse Physique</label>
+                                    <input type="text" id="settingAddress" placeholder="Dakar, Sénégal" required style="width:100%; padding:0.8rem; border:1px solid var(--border); border-radius:8px;">
+                                </div>
+                                <button type="submit" class="auth-submit" style="margin-top: 1rem;">Sauvegarder les paramètres</button>
+                            </form>
                         </div>
                     </div>
 
