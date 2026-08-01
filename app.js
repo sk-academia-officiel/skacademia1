@@ -510,6 +510,36 @@ const DEFAULT_PRODUCTS = [
   { id: 25, type: "formation", category: "formation", icon: "📊", bg: "bg-form", catLabel: "cat-lbl-form", catName: "Formations Informatique", title: "Formation Bureautique & Excel Avancé", desc: "Tableaux croisés dynamiques, formules complexes, VBA et mise en page professionnelle.", price: 25000, typeName: "Formation" }
 ];
 
+const saveProducts = () => {
+    try {
+        localStorage.setItem('sk_products', JSON.stringify(PRODUCTS));
+    } catch (e) {}
+};
+
+const getProducts = () => {
+    try {
+        const saved = localStorage.getItem('sk_products');
+        if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return DEFAULT_PRODUCTS;
+};
+
+let PRODUCTS = getProducts();
+
+const loadDatabase = async () => {
+    try {
+        const cloudProds = await loadProductsFromSupabase();
+        if (cloudProds && cloudProds.length > 0) {
+            PRODUCTS = cloudProds;
+            saveProducts();
+            if (typeof renderProducts === 'function') renderProducts();
+        }
+    } catch (e) {
+        console.warn("loadDatabase fallback:", e);
+    }
+};
+window.loadDatabase = loadDatabase;
+
 // ==========================================
 //  ⚡ MODULE CLOUD SUPABASE (Sync PostgreSQL)
 // ==========================================
@@ -3809,5 +3839,6 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // Initial render (Immediate execution)
+if (typeof renderProducts === 'function') renderProducts();
 if (typeof renderAdminProducts === 'function') renderAdminProducts();
 if (typeof renderStudentDashboard === 'function') renderStudentDashboard();
