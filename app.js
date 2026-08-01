@@ -735,6 +735,7 @@ const loadDatabase = async () => {
     renderProducts();
     if (typeof renderAdminProducts === 'function') renderAdminProducts();
 };
+window.loadDatabase = loadDatabase;
 
 // Helper to save products and re-render all interfaces
 const saveProducts = () => {
