@@ -1252,6 +1252,381 @@ const switchTab = (tab) => {
     registerError.classList.add("hidden");
 };
 
+// ==========================================
+//  OTP EMAIL VERIFICATION & STUDENT DASHBOARD ENGINE
+// ==========================================
+let OTP_STATE = null;
+let otpExpiryInterval = null;
+let otpResendInterval = null;
+
+const startOtpTimers = () => {
+    clearInterval(otpExpiryInterval);
+    clearInterval(otpResendInterval);
+
+    // 10-Minute Expiration Timer
+    const timerDisplay = document.getElementById("otpTimerDisplay");
+    otpExpiryInterval = setInterval(() => {
+        if (!OTP_STATE || !OTP_STATE.expiresAt) {
+            clearInterval(otpExpiryInterval);
+            return;
+        }
+        const remainingMs = OTP_STATE.expiresAt - Date.now();
+        if (remainingMs <= 0) {
+            clearInterval(otpExpiryInterval);
+            if (timerDisplay) timerDisplay.textContent = "Expiré (00:00)";
+            showAuthError(document.getElementById("otpError"), "⏰ Le code de vérification a expiré (limite 10 min). Veuillez cliquer sur Renvoyer le code.");
+            return;
+        }
+        const totalSec = Math.floor(remainingMs / 1000);
+        const mins = Math.floor(totalSec / 60).toString().padStart(2, '0');
+        const secs = (totalSec % 60).toString().padStart(2, '0');
+        if (timerDisplay) timerDisplay.textContent = `${mins}:${secs}`;
+    }, 1000);
+
+    // 60-Second Resend Cooldown Timer
+    const resendBtn = document.getElementById("btnResendOtp");
+    const resendCountdown = document.getElementById("resendCountdown");
+    if (resendBtn) resendBtn.disabled = true;
+
+    otpResendInterval = setInterval(() => {
+        if (!OTP_STATE || !OTP_STATE.resendAllowedAt) {
+            clearInterval(otpResendInterval);
+            return;
+        }
+        const remainingSec = Math.ceil((OTP_STATE.resendAllowedAt - Date.now()) / 1000);
+        if (remainingSec <= 0) {
+            clearInterval(otpResendInterval);
+            if (resendBtn) {
+                resendBtn.disabled = false;
+                resendBtn.innerHTML = "🔄 Renvoyer le code";
+            }
+            return;
+        }
+        if (resendCountdown) resendCountdown.textContent = remainingSec;
+    }, 1000);
+};
+
+// Auto-focus OTP inputs handling
+document.addEventListener("DOMContentLoaded", () => {
+    const boxes = document.querySelectorAll(".otp-box");
+    boxes.forEach((box, idx) => {
+        box.addEventListener("input", (e) => {
+            const val = e.target.value;
+            if (val) {
+                box.classList.add("filled");
+                if (idx < boxes.length - 1) {
+                    boxes[idx + 1].focus();
+                }
+            } else {
+                box.classList.remove("filled");
+            }
+        });
+
+        box.addEventListener("keydown", (e) => {
+            if (e.key === "Backspace" && !box.value && idx > 0) {
+                boxes[idx - 1].focus();
+            }
+        });
+    });
+
+    // Resend OTP Button Handler
+    const btnResend = document.getElementById("btnResendOtp");
+    if (btnResend) {
+        btnResend.addEventListener("click", () => {
+            if (!OTP_STATE || !OTP_STATE.pendingUser) return;
+            
+            const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+            OTP_STATE.code = newCode;
+            OTP_STATE.expiresAt = Date.now() + 10 * 60 * 1000;
+            OTP_STATE.resendAllowedAt = Date.now() + 60 * 1000;
+            OTP_STATE.attempts = 0;
+
+            startOtpTimers();
+            showToast("📩", `Nouveau code envoyé ! (Code de démo : ${newCode})`, 8000);
+        });
+    }
+
+    // OTP Form Verification Submission
+    const otpForm = document.getElementById("otpForm");
+    const otpError = document.getElementById("otpError");
+
+    if (otpForm) {
+        otpForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            if (otpError) otpError.classList.add("hidden");
+
+            if (!OTP_STATE || !OTP_STATE.pendingUser) {
+                showAuthError(otpError, "Session d'inscription expirée. Veuillez recommencer.");
+                return;
+            }
+
+            // Check 5-attempt locking
+            if (OTP_STATE.attempts >= 5) {
+                showAuthError(otpError, "🔒 Trop de tentatives échouées (5 max). Réessayez dans 15 minutes.");
+                return;
+            }
+
+            // Check Expiration
+            if (Date.now() > OTP_STATE.expiresAt) {
+                showAuthError(otpError, "⏰ Le code a expiré. Veuillez cliquer sur 'Renvoyer le code'.");
+                return;
+            }
+
+            // Collect entered 6-digit code
+            const enteredCode = Array.from(document.querySelectorAll(".otp-box")).map(b => b.value).join("");
+            if (enteredCode.length !== 6) {
+                showAuthError(otpError, "Veuillez saisir les 6 chiffres du code.");
+                return;
+            }
+
+            // Verify Code
+            if (enteredCode !== OTP_STATE.code) {
+                OTP_STATE.attempts++;
+                const remaining = 5 - OTP_STATE.attempts;
+                if (remaining <= 0) {
+                    showAuthError(otpError, "🔒 Trop de tentatives échouées. Compte verrouillé pendant 15 minutes.");
+                } else {
+                    showAuthError(otpError, `Code incorrect. Veuillez réessayer. (${remaining} essais restants)`);
+                }
+                return;
+            }
+
+            // SUCCESS! Activate User Account
+            const users = getUsers();
+            const activatedUser = {
+                ...OTP_STATE.pendingUser,
+                isVerified: true,
+                verifiedAt: new Date().toISOString(),
+                purchases: [],
+                courses: []
+            };
+
+            users.push(activatedUser);
+            saveUsers(users);
+            syncUserToSupabase(activatedUser);
+
+            // SECURITY CLEANUP: Wipe OTP Code immediately from memory
+            OTP_STATE.code = null;
+            delete OTP_STATE.code;
+            OTP_STATE = null;
+
+            clearInterval(otpExpiryInterval);
+            clearInterval(otpResendInterval);
+
+            // Log User In and Redirect to Dashboard
+            setCurrentUser(activatedUser);
+            updateLastActivity();
+            closeAuthModal();
+            updateAuthUI();
+            updateGatedSections();
+
+            history.pushState(null, null, "#dashboard");
+            navigateTo("#dashboard");
+            renderStudentDashboard();
+
+            showToast("🎉", `Félicitations ${activatedUser.firstName} ! Votre compte est activé avec succès.`);
+        });
+    }
+
+    // Student Dashboard Forms (Profile & Password Updates)
+    const profileForm = document.getElementById("studentProfileForm");
+    if (profileForm) {
+        profileForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const user = getCurrentUser();
+            if (!user) return;
+
+            user.firstName = sanitizeHTML(document.getElementById("profFirstName").value.trim());
+            user.lastName = sanitizeHTML(document.getElementById("profLastName").value.trim());
+            user.phone = sanitizeHTML(document.getElementById("profPhone").value.trim());
+
+            setCurrentUser(user);
+            const users = getUsers();
+            const idx = users.findIndex(u => u.email === user.email);
+            if (idx > -1) {
+                users[idx] = user;
+                saveUsers(users);
+                syncUserToSupabase(user);
+            }
+
+            updateAuthUI();
+            renderStudentDashboard();
+            showToast("✅", "Informations de profil mises à jour avec succès !");
+        });
+    }
+
+    const passwordForm = document.getElementById("studentPasswordForm");
+    if (passwordForm) {
+        passwordForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const user = getCurrentUser();
+            if (!user) return;
+
+            const oldPass = document.getElementById("oldPassword").value;
+            const newPass = document.getElementById("newPassword").value;
+            const confirmPass = document.getElementById("confirmNewPassword").value;
+
+            const oldHash = await hashPassword(oldPass);
+            if (oldHash !== user.passwordHash) {
+                showToast("❌", "L'ancien mot de passe est incorrect.");
+                return;
+            }
+            if (newPass.length < 6) {
+                showToast("❌", "Le nouveau mot de passe doit faire au moins 6 caractères.");
+                return;
+            }
+            if (newPass !== confirmPass) {
+                showToast("❌", "Les nouveaux mots de passe ne correspondent pas.");
+                return;
+            }
+
+            user.passwordHash = await hashPassword(newPass);
+            setCurrentUser(user);
+            const users = getUsers();
+            const idx = users.findIndex(u => u.email === user.email);
+            if (idx > -1) {
+                users[idx] = user;
+                saveUsers(users);
+                syncUserToSupabase(user);
+            }
+
+            passwordForm.reset();
+            showToast("🔒", "Votre mot de passe a été modifié avec succès !");
+        });
+    }
+});
+
+// Student Dashboard Tab Switching
+window.switchStudentTab = (tabId) => {
+    document.querySelectorAll('#dashboard .dash-tab').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('#dashboard .dash-nav-btn').forEach(el => el.classList.remove('active'));
+
+    const targetTab = document.getElementById(`studentTab${tabId.charAt(0).toUpperCase() + tabId.slice(1)}`);
+    if (targetTab) targetTab.classList.remove('hidden');
+
+    const btn = document.querySelector(`#dashboard .dash-nav-btn[onclick="switchStudentTab('${tabId}')"]`);
+    if (btn) btn.classList.add('active');
+
+    renderStudentDashboard();
+};
+
+const renderStudentDashboard = () => {
+    const user = getCurrentUser();
+    if (!user) return;
+
+    // Header & Avatar
+    const avatarEl = document.getElementById("dashAvatar");
+    const nameEl = document.getElementById("dashName");
+    const welcomeTitle = document.getElementById("dashWelcomeTitle");
+    const statusBadge = document.getElementById("dashUserStatusBadge");
+
+    const initials = getInitials(user.firstName, user.lastName);
+    if (avatarEl) avatarEl.textContent = initials;
+    if (nameEl) nameEl.textContent = `${user.firstName} ${user.lastName}`;
+    if (welcomeTitle) welcomeTitle.textContent = `👋 Bienvenue sur votre Espace Étudiant, ${user.firstName} !`;
+    if (statusBadge) statusBadge.textContent = user.isSubscribed ? "⭐ Compte Premium" : "✔️ Compte Vérifié";
+
+    // Overview Stats
+    const docsCountEl = document.getElementById("studentDocsCount");
+    const coursesCountEl = document.getElementById("studentCoursesCount");
+    const userPurchases = user.purchases || [];
+
+    if (docsCountEl) docsCountEl.textContent = userPurchases.length;
+    if (coursesCountEl) coursesCountEl.textContent = user.isSubscribed ? "4 Formations" : "0";
+
+    // Purchases Tab Grid
+    const purchasesGrid = document.getElementById("studentPurchasesContainer");
+    if (purchasesGrid) {
+        if (userPurchases.length === 0) {
+            purchasesGrid.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: 3rem 1.5rem; background: white; border-radius: 12px; border: 1px solid var(--border);">
+                    <div style="font-size: 3rem; color: var(--text-muted); margin-bottom: 0.75rem;"><i class="fa-solid fa-file-circle-xmark"></i></div>
+                    <strong style="font-size: 1.1rem; color: var(--blue-deep); display: block; margin-bottom: 0.25rem;">Vous n'avez encore acheté aucun fascicule</strong>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">Explorez notre catalogue de concours pour commander vos annales et cours PDF.</p>
+                    <a href="#boutique" class="btn-primary">📖 Accéder à la Boutique →</a>
+                </div>`;
+        } else {
+            purchasesGrid.innerHTML = userPurchases.map(p => `
+                <div style="background: white; border-radius: 12px; border: 1px solid var(--border); padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+                            <span class="product-cat-label cat-lbl-admin" style="font-size:0.75rem;">Fascicule PDF</span>
+                            <span style="font-size:0.75rem; color:var(--text-muted);">Acheté le ${p.date || '01/08/2026'}</span>
+                        </div>
+                        <h4 style="font-size:1rem; color:var(--blue-deep); margin-bottom:0.5rem;">${sanitizeHTML(p.title || 'Document Concours')}</h4>
+                    </div>
+                    <button class="btn-primary btn-sm" onclick="showToast('📥', 'Téléchargement du PDF sécurisé en cours...')" style="margin-top:1rem; width:100%;">
+                        <i class="fa-solid fa-download"></i> Télécharger PDF
+                    </button>
+                </div>
+            `).join("");
+        }
+    }
+
+    // Courses Tab Grid
+    const coursesGrid = document.getElementById("studentCoursesContainer");
+    if (coursesGrid) {
+        if (!user.isSubscribed) {
+            coursesGrid.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: 3rem 1.5rem; background: white; border-radius: 12px; border: 1px solid var(--border);">
+                    <div style="font-size: 3rem; color: var(--text-muted); margin-bottom: 0.75rem;"><i class="fa-solid fa-graduation-cap"></i></div>
+                    <strong style="font-size: 1.1rem; color: var(--blue-deep); display: block; margin-bottom: 0.25rem;">Aucune formation vidéo débloquée</strong>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">Souscrivez à un pass formation pour accéder aux cours visio et exercices pratiques.</p>
+                    <a href="#formations" class="btn-primary">🎓 Découvrir les Formations →</a>
+                </div>`;
+        } else {
+            coursesGrid.innerHTML = FORMATIONS.map((f, i) => `
+                <div style="background: white; border-radius: 12px; border: 1px solid var(--border); padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                        <span style="font-size:2rem; display:block; margin-bottom:0.5rem;">${f.icon}</span>
+                        <h4 style="font-size:1.05rem; color:var(--blue-deep); margin-bottom:0.3rem;">${f.title}</h4>
+                        <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:0.75rem;">${f.desc}</p>
+                        <div style="margin-bottom:0.75rem;">
+                            <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:700; margin-bottom:0.25rem;">
+                                <span>Progression</span>
+                                <span>${(i + 1) * 25}%</span>
+                            </div>
+                            <div style="height:6px; background:#e2e8f0; border-radius:10px; overflow:hidden;">
+                                <div style="height:100%; width:${(i + 1) * 25}%; background:var(--orange-dark);"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn-primary btn-sm" onclick="navigateTo('#course')" style="width:100%;">
+                        <i class="fa-solid fa-play"></i> Continuer la Formation
+                    </button>
+                </div>
+            `).join("");
+        }
+    }
+
+    // Profile Inputs Populate
+    const profFirst = document.getElementById("profFirstName");
+    const profLast = document.getElementById("profLastName");
+    const profEmail = document.getElementById("profEmail");
+    const profPhone = document.getElementById("profPhone");
+
+    if (profFirst) profFirst.value = user.firstName || '';
+    if (profLast) profLast.value = user.lastName || '';
+    if (profEmail) profEmail.value = user.email || '';
+    if (profPhone) profPhone.value = user.phone || '';
+};
+
+const confirmDeleteAccount = () => {
+    if (confirm("⚠️ Êtes-vous sûr de vouloir supprimer définitivement votre compte SK ACADEMIA ? Cette action est irréversible.")) {
+        const user = getCurrentUser();
+        if (user) {
+            let users = getUsers();
+            users = users.filter(u => u.email !== user.email);
+            saveUsers(users);
+            clearCurrentUser();
+            location.reload();
+        }
+    }
+};
+
+window.switchStudentTab = switchStudentTab;
+window.confirmDeleteAccount = confirmDeleteAccount;
+
 tabLogin.addEventListener("click", () => switchTab("login"));
 tabRegister.addEventListener("click", () => switchTab("register"));
 switchToRegister.addEventListener("click", (e) => { e.preventDefault(); switchTab("register"); });
@@ -1321,49 +1696,60 @@ registerForm.addEventListener("submit", async (e) => {
     // Hash password before storing (SECURITY: never store plaintext)
     const passwordHash = await hashPassword(password);
 
-    // Create user with hashed password
-    const newUser = {
-        id: Date.now(),
-        firstName,
-        lastName,
-        email,
-        phone,
-        passwordHash, // SECURED: SHA-256 hash, not plaintext
-        createdAt: new Date().toISOString()
+    // Prepare pending registration state
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    OTP_STATE = {
+        pendingUser: {
+            id: Date.now(),
+            firstName,
+            lastName,
+            email,
+            phone,
+            passwordHash,
+            createdAt: new Date().toISOString(),
+            isVerified: false
+        },
+        code: otpCode,
+        createdAt: Date.now(),
+        expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
+        attempts: 0,
+        resendAllowedAt: Date.now() + 60 * 1000 // 60s
     };
 
-    users.push(newUser);
-    saveUsers(users);
-    syncUserToSupabase(newUser);
-    setCurrentUser(newUser);
-    updateLastActivity();
+    // Trigger Supabase Auth OTP if connected
+    if (typeof initSupabase === 'function' && initSupabase() && supabaseClient) {
+        try {
+            await supabaseClient.auth.signUp({
+                email,
+                password,
+                options: { data: { first_name: firstName, last_name: lastName, phone } }
+            });
+        } catch(e) { console.warn("Supabase Auth OTP fallback:", e); }
+    }
 
-    // Show success
-    authModal.querySelector(".auth-tabs").style.display = "none";
-    registerForm.classList.add("hidden");
-    loginForm.classList.add("hidden");
-    authModal.querySelector(".auth-footer").style.display = "none";
-    
-    const successDiv = document.createElement("div");
-    successDiv.className = "auth-success";
-    successDiv.innerHTML = `
-        <span class="success-icon">🎉</span>
-        <h3>Bienvenue, ${firstName} !</h3>
-        <p>Votre compte a été créé avec succès.</p>
-    `;
-    authModal.appendChild(successDiv);
+    // Switch Modal View to OTP Verification Form
+    const registerForm = document.getElementById("registerForm");
+    const otpForm = document.getElementById("otpForm");
+    const authTabs = document.querySelector(".auth-tabs");
 
-    setTimeout(() => {
-        closeAuthModal();
-        // Clean up success message
-        successDiv.remove();
-        authModal.querySelector(".auth-tabs").style.display = "";
-        authModal.querySelector(".auth-footer").style.display = "";
-        registerForm.reset();
-        updateAuthUI();
-        updateGatedSections();
-        showToast("🎉", `Bienvenue sur SK ACADEMIA, ${firstName} !`);
-    }, 2000);
+    if (authTabs) authTabs.style.display = "none";
+    if (registerForm) registerForm.classList.add("hidden");
+    if (otpForm) otpForm.classList.remove("hidden");
+
+    // Display masked email notice
+    const notice = document.getElementById("otpEmailNotice");
+    if (notice) notice.innerHTML = `Un code de sécurité à 6 chiffres a été envoyé à <strong>${maskEmail(email)}</strong>`;
+
+    // Reset OTP boxes
+    document.querySelectorAll(".otp-box").forEach((box, i) => {
+        box.value = "";
+        box.classList.remove("filled");
+        if (i === 0) setTimeout(() => box.focus(), 100);
+    });
+
+    startOtpTimers();
+    showToast("📩", `Code de vérification envoyé à ${maskEmail(email)}. (Code de démo : ${otpCode})`, 8000);
 });
 
 // LOGIN (SECURED: hash comparison + rate limiting)

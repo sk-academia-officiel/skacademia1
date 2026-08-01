@@ -2155,4 +2155,63 @@ input, textarea, .selectable {
     }
 }
 
+/* ===== OTP VERIFICATION BOXES ===== */
+.otp-box {
+    width: 44px;
+    height: 52px;
+    text-align: center;
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--blue-deep);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    background: #f8fafc;
+    transition: var(--transition);
+}
+.otp-box:focus {
+    border-color: var(--orange-dark);
+    background: white;
+    box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.2);
+    outline: none;
+}
+.otp-box.filled {
+    border-color: var(--blue-accent);
+    background: #eff6ff;
+}
+
+/* Student Dashboard Navigation Buttons */
+.dash-nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    background: transparent;
+    border: none;
+    color: var(--text-dark);
+    font-weight: 500;
+    font-size: 0.9rem;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    transition: var(--transition);
+}
+.dash-nav-btn i {
+    width: 18px;
+    text-align: center;
+}
+.dash-nav-btn:hover {
+    background: #f1f5f9;
+}
+.dash-nav-btn.active {
+    background: #fff7ed;
+    color: var(--blue-deep);
+    font-weight: 700;
+    border-left: 4px solid var(--orange);
+}
+.dash-nav-btn.active i {
+    color: var(--orange-dark);
+}
+
+
 
