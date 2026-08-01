@@ -1,0 +1,9 @@
+node_modules/
+.env
+.DS_Store
+database.json.bak
+backend/database.json
+backend/*.sqlite
+backend/*.log
+dist/
+build/
