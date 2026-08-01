@@ -12,15 +12,19 @@
     <meta http-equiv="X-Frame-Options" content="DENY">
     <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
     <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=()">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https:; frame-ancestors 'none';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; connect-src 'self' https:; frame-ancestors 'none';">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
     
     <!-- Chart.js for Admin Analytics -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Supabase Client JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -66,11 +70,6 @@
             </div>
             <div class="auth-error hidden" id="loginError"></div>
             <button type="submit" class="auth-submit">Se Connecter →</button>
-            <div style="margin-top:0.75rem; text-align:center; padding:0.6rem; background:#f1f5f9; border-radius:8px; border:1px dashed #cbd5e1; font-size:0.85rem;">
-                <span style="display:block; font-weight:600; color:var(--blue-deep); margin-bottom:0.25rem;">🔑 Accès Administrateur Déjà Inscrit</span>
-                <span style="color:var(--text-dark);">Email : <strong style="color:var(--blue-accent);">admin@skacademia.sn</strong> | Code : <strong style="color:#e11d48;">ADMIN2508</strong></span>
-                <button type="button" onclick="fillAdminCredentials()" style="display:block; margin:0.4rem auto 0 auto; background:var(--blue-accent); color:white; border:none; padding:0.35rem 0.8rem; border-radius:6px; cursor:pointer; font-size:0.8rem; font-weight:600;">⚡ Remplir Automatiquement &amp; Connecter →</button>
-            </div>
         </form>
         <!-- REGISTER FORM -->
         <form class="auth-form hidden" id="registerForm">
@@ -139,7 +138,7 @@
                 <button class="btn-checkout" onclick="checkoutViaWhatsApp()" style="background:#25D366; color:white; margin-top:0.4rem; font-weight:700;">📲 Achat Express via WhatsApp</button>
             </div>
             <div style="margin-top:0.5rem; text-align:center; font-size:0.75rem; color:var(--text-muted);">
-                🔒 Livraison PDF Numérique Instantanée • Support 24/7
+                ℹ️ Confirmation manuelle sous quelques minutes via WhatsApp après envoi • Support 24/7 🇸🇳
             </div>
         </div>
     </aside>
@@ -149,9 +148,10 @@
         <div class="top-bar-inner">
             <span class="top-bar-text">📚 Digital Products & Exam Preparation in Senegal</span>
             <div class="top-bar-socials">
-                <a href="#" aria-label="Facebook">📘</a>
-                <a href="#" aria-label="Instagram">📸</a>
-                <a href="#" aria-label="YouTube">▶️</a>
+                <a href="https://facebook.com/skacademia.sn" target="_blank" rel="noopener" aria-label="Facebook">📘</a>
+                <a href="https://instagram.com/skacademia.sn" target="_blank" rel="noopener" aria-label="Instagram">📸</a>
+                <a href="https://wa.me/221765749343" target="_blank" rel="noopener" aria-label="WhatsApp">💬</a>
+                <a href="https://youtube.com/@skacademia" target="_blank" rel="noopener" aria-label="YouTube">▶️</a>
             </div>
         </div>
     </div>
@@ -288,11 +288,77 @@
             <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: center; font-size: 0.85rem;">
                 <span style="display: flex; align-items: center; gap: 0.4rem; background: rgba(255,255,255,0.1); padding: 0.4rem 0.8rem; border-radius: 20px;">🎓 <strong>15 000+</strong> Candidats</span>
                 <span style="display: flex; align-items: center; gap: 0.4rem; background: rgba(255,255,255,0.1); padding: 0.4rem 0.8rem; border-radius: 20px;">🏆 <strong>94%</strong> Admis</span>
-                <span style="display: flex; align-items: center; gap: 0.4rem; background: rgba(255,255,255,0.1); padding: 0.4rem 0.8rem; border-radius: 20px;">👁️ <strong>Aperçu 10p.</strong> Gratuit</span>
+                <span class="badge-official"><span class="badge-official-pulse"></span> Conformité MEN / Fonction Publique 🇸🇳</span>
                 <button onclick="openDemoModal()" style="background: var(--orange-dark); color: white; border: none; padding: 0.45rem 1rem; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 0.85rem;">🎓 Réserver un Essai →</button>
             </div>
         </div>
     </div>
+
+    <!-- PARCOURS CANDIDAT EN 3 ÉTAPES (BENCHMARK EKOLBI) -->
+    <section id="journey" class="section page-section" style="background: #f8fafc; padding: 4rem 0;">
+        <div class="container">
+            <div class="section-head">
+                <div class="section-tag">⚡ Méthode Éprouvée</div>
+                <h2>VOTRE PARCOURS DE RÉUSSITE EN <span class="text-orange">3 ÉTAPES</span></h2>
+                <p>Un cheminement simple et efficace pour valider votre concours avec brio</p>
+            </div>
+            <div class="journey-grid">
+                <div class="journey-card">
+                    <div class="journey-number">1</div>
+                    <h3 style="color: var(--blue-deep); font-size: 1.15rem; margin-bottom: 0.5rem;">Simulez votre Éligibilité</h3>
+                    <p style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.6;">Utilisez notre simulateur gratuit pour identifier les concours correspondant exactement à votre diplôme (BFEM, BAC, Licence, Master) et votre âge.</p>
+                </div>
+                <div class="journey-card">
+                    <div class="journey-number">2</div>
+                    <h3 style="color: var(--blue-deep); font-size: 1.15rem; margin-bottom: 0.5rem;">Feuilletez l'Extrait 10 Pages</h3>
+                    <p style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.6;">Consultez gratuitement les 10 premières pages de chaque fascicule et annale corrigée directement dans notre lecteur de document sécurisé.</p>
+                </div>
+                <div class="journey-card">
+                    <div class="journey-number">3</div>
+                    <h3 style="color: var(--blue-deep); font-size: 1.15rem; margin-bottom: 0.5rem;">Livraison WhatsApp &amp; Accès Cloud</h3>
+                    <p style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.6;">Validez votre commande via WhatsApp en 2 minutes et accédez instantanément à vos ressources complètes dans votre Dashboard Étudiant.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TABLEAU COMPARATIF (BENCHMARK EKOLBI) -->
+    <section id="comparison" class="section page-section" style="padding: 4rem 0;">
+        <div class="container">
+            <div class="section-head">
+                <div class="section-tag">📊 Pourquoi SK ACADEMIA ?</div>
+                <h2>LA DIFFÉRENCE QUI FAIT <span class="text-orange">L'EXCELLENCE</span></h2>
+                <p>Pourquoi les candidats sérieux choisissent SK ACADEMIA plutôt que les documents obsolètes</p>
+            </div>
+            <div style="max-width: 950px; margin: 0 auto;" class="comparison-matrix">
+                <div class="comparison-header">
+                    <div>Critères de Réussite</div>
+                    <div>Méthodes Classiques / PDF Pliés</div>
+                    <div>🎓 SK ACADEMIA 2026</div>
+                </div>
+                <div class="comparison-row">
+                    <div><strong>Conformité du Programme</strong></div>
+                    <div style="color: #ef4444;">Sujets obsolètes d'anciennes sessions</div>
+                    <div class="comparison-cell-highlight">✅ 100% Alignés sur les arrêtés ministériels 2026</div>
+                </div>
+                <div class="comparison-row">
+                    <div><strong>Corrigés &amp; Méthodologie</strong></div>
+                    <div style="color: #ef4444;">Corrigés sommaires sans explications</div>
+                    <div class="comparison-cell-highlight">✅ Corrections détaillées pas à pas avec grilles d'évaluation</div>
+                </div>
+                <div class="comparison-row">
+                    <div><strong>Accès &amp; Révision Mobile</strong></div>
+                    <div style="color: #ef4444;">Documents papier perdus ou abîmés</div>
+                    <div class="comparison-cell-highlight">✅ Espace Étudiant Cloud + Lecteur PDF 10 pages intégré</div>
+                </div>
+                <div class="comparison-row">
+                    <div><strong>Accompagnement</strong></div>
+                    <div style="color: #ef4444;">Candidat isolé sans conseiller</div>
+                    <div class="comparison-cell-highlight">✅ Chatbot commercial Moussa + Support WhatsApp 24/7</div>
+                </div>
+            </div>
+        </div>
+    </section>
 
     <!-- CATEGORIES SECTION -->
     <section id="categories" class="section page-section">
@@ -638,6 +704,7 @@
             <button class="filter-pill" data-filter="formation">🎓 Formations</button>
             <button class="filter-pill" data-filter="administration">🏛️ Administration</button>
             <button class="filter-pill" data-filter="securite">🛡️ Sécurité</button>
+            <button class="filter-pill" data-filter="douanes">🛃 Douanes</button>
             <button class="filter-pill" data-filter="sante">🩺 Santé</button>
             <button class="filter-pill" data-filter="enseignement">📚 Enseignement</button>
             <button class="filter-pill" data-filter="grandes-ecoles">📐 Grandes Écoles</button>
@@ -800,73 +867,371 @@
     </section>
 
     <!-- ADMIN DASHBOARD (NOUVEAU) -->
-    <section id="admin" class="section section-alt page-section hidden-section">
-        <div class="dashboard-layout">
-            <aside class="dashboard-sidebar">
-                <div class="dash-user-info" style="background:var(--blue-deep);">
-                    <div class="dash-avatar" style="color:var(--orange);">⚙️</div>
-                    <div class="dash-name">Administrateur</div>
-                    <div class="dash-role">Contrôle Total</div>
+    <!-- ADMIN DASHBOARD PROFESIONNEL (SHOPIFY / CHARIOW STYLE) -->
+    <section id="admin" class="page-section hidden-section" style="padding: 0; background: #f8fafc;">
+        <div class="admin-layout">
+            <!-- Sidebar Gauche Fixe -->
+            <aside class="admin-sidebar" id="adminSidebar">
+                <div>
+                    <div class="admin-sidebar-brand">
+                        <span style="font-size: 1.4rem;">🎓</span>
+                        <span>SK ACADEMIA <small style="display:block; font-size:0.65rem; color:#f5a623; font-weight:600; text-transform:uppercase;">Back-Office Pro</small></span>
+                    </div>
+                    <nav class="admin-nav">
+                        <button class="admin-nav-item active" onclick="switchAdminTab('overview')">
+                            <i class="fa-solid fa-chart-pie"></i> Vue d'Ensemble
+                        </button>
+                        <button class="admin-nav-item" onclick="switchAdminTab('products')">
+                            <i class="fa-solid fa-box-archive"></i> Produits
+                        </button>
+                        <button class="admin-nav-item" onclick="switchAdminTab('visitors')">
+                            <i class="fa-solid fa-users-viewfinder"></i> Visiteurs
+                        </button>
+                        <button class="admin-nav-item" onclick="switchAdminTab('orders')">
+                            <i class="fa-solid fa-cart-shopping"></i> Ventes / Commandes
+                        </button>
+                        <button class="admin-nav-item" onclick="switchAdminTab('customers')">
+                            <i class="fa-solid fa-users"></i> Base Clients
+                        </button>
+                        <button class="admin-nav-item" onclick="switchAdminTab('abandoned')">
+                            <i class="fa-solid fa-cart-arrow-down"></i> Paniers Abandonnés
+                        </button>
+                        <button class="admin-nav-item" onclick="switchAdminTab('analytics')">
+                            <i class="fa-solid fa-chart-line"></i> Analytiques
+                        </button>
+                        <button class="admin-nav-item" onclick="switchAdminTab('settings')">
+                            <i class="fa-solid fa-gears"></i> Paramètres
+                        </button>
+                    </nav>
                 </div>
-                <nav class="dash-nav">
-                    <button class="dash-nav-btn active" data-tab="admin-products">🛍️ Tous les Produits</button>
-                    <button class="dash-nav-btn" data-tab="admin-docs">📄 Documents</button>
-                    <button class="dash-nav-btn" data-tab="admin-videos">🎥 Vidéos</button>
-                    <button class="dash-nav-btn dash-logout" onclick="clearCurrentUser(); location.reload();">🚪 Déconnexion</button>
-                </nav>
+
+                <div style="padding: 1rem; border-top: 1px solid rgba(255,255,255,0.08);">
+                    <button onclick="clearCurrentUser(); location.reload();" style="width: 100%; padding: 0.65rem; border-radius: 8px; background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-size: 0.85rem;">
+                        <i class="fa-solid fa-right-from-bracket"></i> Déconnexion Admin
+                    </button>
+                </div>
             </aside>
-            <main class="dashboard-content">
-                <!-- Tab: Products -->
-                <div class="dash-tab active" id="admin-products">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-                        <h2>Gestion du Catalogue</h2>
-                        <div style="display:flex; gap:1rem;">
-                            <button class="btn-secondary btn-sm" onclick="exportDatabase()">📥 Exporter la Base (JSON)</button>
-                            <button class="btn-primary btn-sm" onclick="openAdminModal()">+ Ajouter un Produit</button>
+
+            <!-- Contenu Principal Dashboard -->
+            <main class="admin-main">
+                <!-- Topbar Header -->
+                <header class="admin-topbar">
+                    <div class="admin-topbar-left">
+                        <button class="btn-secondary btn-sm" onclick="document.getElementById('adminSidebar').classList.toggle('open')" style="display: none;" id="adminMobileToggle">
+                            <i class="fa-solid fa-bars"></i>
+                        </button>
+                        <div class="admin-page-title">
+                            <h2 id="adminCurrentTabTitle">Vue d'Ensemble</h2>
+                            <p id="adminCurrentTabSubtitle">Statistiques clés et performances de ventes en temps réel</p>
                         </div>
                     </div>
-                    <div class="admin-table-container">
-                        <table class="admin-table">
-                            <thead>
-                                <tr>
-                                    <th>Titre</th>
-                                    <th>Catégorie</th>
-                                    <th>Prix (FCFA)</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="adminProductsTable">
-                                <!-- JS Populated -->
-                            </tbody>
-                        </table>
+                    <div class="admin-topbar-right">
+                        <div class="admin-user-badge">
+                            <i class="fa-solid fa-user-shield" style="color:var(--orange);"></i>
+                            <span>Admin : <strong id="adminUserEmailDisplay">admin@skacademia.sn</strong></span>
+                        </div>
+                        <button class="btn-primary btn-sm" onclick="exportDatabase()" style="white-space:nowrap;">
+                            <i class="fa-solid fa-download"></i> Exporter JSON
+                        </button>
                     </div>
-                </div>
+                </header>
 
-                <!-- Tab: Documents -->
-                <div class="dash-tab" id="admin-docs">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-                        <h2>Gestion des Documents (Fascicules, Annales)</h2>
-                        <button class="btn-primary btn-sm" onclick="openAdminModal(null, 'fascicule')">+ Ajouter Document</button>
-                    </div>
-                    <div class="admin-table-container">
-                        <table class="admin-table">
-                            <thead><tr><th>Titre</th><th>Catégorie</th><th>Prix</th><th>Actions</th></tr></thead>
-                            <tbody id="adminDocsTable"></tbody>
-                        </table>
-                    </div>
-                </div>
+                <div class="admin-body">
+                    <!-- 1. TAB VUE D'ENSEMBLE -->
+                    <div class="admin-tab-content" id="adminTabOverview">
+                        <!-- 6 Stat Cards Grid -->
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-card-head">
+                                    <span class="stat-label">Chiffre d'Affaires</span>
+                                    <div class="stat-icon orange"><i class="fa-solid fa-wallet"></i></div>
+                                </div>
+                                <div class="stat-value" id="adminTotalRevenue">0 FCFA</div>
+                                <div style="margin-top: 0.5rem;"><span class="stat-trend up"><i class="fa-solid fa-arrow-trend-up"></i> +14.2%</span> <span style="font-size:0.75rem; color:var(--text-muted);">vs 7d</span></div>
+                            </div>
 
-                <!-- Tab: Videos -->
-                <div class="dash-tab" id="admin-videos">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-                        <h2>Gestion des Formations Vidéos</h2>
-                        <button class="btn-primary btn-sm" onclick="openAdminModal(null, 'cours')">+ Ajouter Vidéo</button>
+                            <div class="stat-card">
+                                <div class="stat-card-head">
+                                    <span class="stat-label">Visiteurs Uniques</span>
+                                    <div class="stat-icon blue"><i class="fa-solid fa-users"></i></div>
+                                </div>
+                                <div class="stat-value" id="adminLiveVisitors">34</div>
+                                <div style="margin-top: 0.5rem;"><span class="stat-trend up"><i class="fa-solid fa-circle" style="font-size:8px;"></i> En ligne</span> <span style="font-size:0.75rem; color:var(--text-muted);">temps réel</span></div>
+                            </div>
+
+                            <div class="stat-card">
+                                <div class="stat-card-head">
+                                    <span class="stat-label">Total Commandes</span>
+                                    <div class="stat-icon green"><i class="fa-solid fa-bag-shopping"></i></div>
+                                </div>
+                                <div class="stat-value" id="adminTotalOrders">0</div>
+                                <div style="margin-top: 0.5rem;"><span class="stat-trend up"><i class="fa-solid fa-arrow-trend-up"></i> +8.5%</span> <span style="font-size:0.75rem; color:var(--text-muted);">vs semaine passée</span></div>
+                            </div>
+
+                            <div class="stat-card">
+                                <div class="stat-card-head">
+                                    <span class="stat-label">Taux de Conversion</span>
+                                    <div class="stat-icon purple"><i class="fa-solid fa-chart-pie"></i></div>
+                                </div>
+                                <div class="stat-value" id="adminConversionRate">4.8%</div>
+                                <div style="margin-top: 0.5rem;"><span class="stat-trend up"><i class="fa-solid fa-arrow-trend-up"></i> +1.2%</span> <span style="font-size:0.75rem; color:var(--text-muted);">Acheteurs / Visiteurs</span></div>
+                            </div>
+
+                            <div class="stat-card">
+                                <div class="stat-card-head">
+                                    <span class="stat-label">Paniers Abandonnés</span>
+                                    <div class="stat-icon orange"><i class="fa-solid fa-cart-arrow-down"></i></div>
+                                </div>
+                                <div class="stat-value" id="adminTotalAbandoned">0</div>
+                                <div style="margin-top: 0.5rem;"><span class="stat-trend down"><i class="fa-solid fa-circle-exclamation"></i> Relance requise</span></div>
+                            </div>
+
+                            <div class="stat-card">
+                                <div class="stat-card-head">
+                                    <span class="stat-label">Top Produit Vendu</span>
+                                    <div class="stat-icon blue"><i class="fa-solid fa-trophy"></i></div>
+                                </div>
+                                <div class="stat-value" style="font-size: 1rem;" id="adminTopSellingProduct">Fascicule ENA 2026</div>
+                                <div style="margin-top: 0.5rem;"><span style="font-size:0.78rem; font-weight:700; color:var(--blue-accent);" id="adminTopSellingCount">42 ventes</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Chart Section -->
+                        <div style="background: white; border-radius: 12px; border: 1px solid var(--border); padding: 1.5rem; margin-bottom: 2rem;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                                <h3 style="font-size: 1.1rem; color: var(--blue-deep);"><i class="fa-solid fa-chart-line"></i> Évolution du Chiffre d'Affaires &amp; Trafic</h3>
+                                <span style="font-size:0.8rem; color:var(--text-muted); font-weight:600;">7 Derniers Jours</span>
+                            </div>
+                            <div style="height: 280px;">
+                                <canvas id="revenueChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Activity Feed & Quick Actions -->
+                        <div style="background: white; border-radius: 12px; border: 1px solid var(--border); padding: 1.5rem;">
+                            <h3 style="font-size: 1.1rem; color: var(--blue-deep); margin-bottom: 1rem;"><i class="fa-solid fa-clock-rotate-left"></i> Flux d'Activité Récente</h3>
+                            <ul id="adminActivityLog" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem;">
+                                <li style="color:var(--text-muted); font-size:0.9rem;">Chargement de l'activité...</li>
+                            </ul>
+                        </div>
                     </div>
-                    <div class="admin-table-container">
-                        <table class="admin-table">
-                            <thead><tr><th>Titre</th><th>Catégorie</th><th>Prix</th><th>Actions</th></tr></thead>
-                            <tbody id="adminVideosTable"></tbody>
-                        </table>
+
+                    <!-- 2. TAB PRODUITS -->
+                    <div class="admin-tab-content hidden" id="adminTabProducts">
+                        <div style="background: white; border-radius: 12px; border: 1px solid var(--border); padding: 1.5rem;">
+                            <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+                                <div style="display: flex; gap: 0.75rem; flex: 1; min-width: 280px;">
+                                    <div style="position: relative; flex: 1;">
+                                        <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+                                        <input type="text" id="adminProductSearch" placeholder="Rechercher un produit..." style="width: 100%; padding: 0.6rem 0.6rem 0.6rem 2.4rem; border: 1px solid var(--border); border-radius: 8px;">
+                                    </div>
+                                    <select id="adminProductCategoryFilter" style="padding: 0.6rem; border: 1px solid var(--border); border-radius: 8px; background: white;">
+                                        <option value="all">Toutes les catégories</option>
+                                        <option value="administration">Administration</option>
+                                        <option value="securite">Sécurité</option>
+                                        <option value="douane">Douanes</option>
+                                        <option value="sante">Santé</option>
+                                        <option value="grandes-ecoles">Grandes Écoles</option>
+                                        <option value="enseignement">Enseignement</option>
+                                    </select>
+                                </div>
+                                <button class="btn-primary" onclick="openAdminModal()">
+                                    <i class="fa-solid fa-plus"></i> Ajouter un Produit
+                                </button>
+                            </div>
+
+                            <div class="admin-table-container">
+                                <table class="admin-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Produit</th>
+                                            <th>Catégorie</th>
+                                            <th>Prix (FCFA)</th>
+                                            <th>Statut</th>
+                                            <th>Ventes</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="adminProductsTableBody">
+                                        <!-- JS Populated -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. TAB VISITEURS -->
+                    <div class="admin-tab-content hidden" id="adminTabVisitors">
+                        <div style="background: white; border-radius: 12px; border: 1px solid var(--border); padding: 1.5rem;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                                <div>
+                                    <h3 style="color:var(--blue-deep);"><i class="fa-solid fa-chart-column"></i> Suivi des Visiteurs &amp; Trafic Web</h3>
+                                    <p style="font-size:0.85rem; color:var(--text-muted);">Mesures d'audience et fréquentation des pages du site</p>
+                                </div>
+                                <span class="badge-official"><span class="badge-official-pulse"></span> Analytics Live</span>
+                            </div>
+
+                            <div style="height: 280px; margin-bottom: 2rem;">
+                                <canvas id="trafficChart"></canvas>
+                            </div>
+
+                            <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem;">
+                                <h4 style="font-size: 0.95rem; color: var(--blue-deep); margin-bottom: 0.75rem;">📄 Pages les plus visitées (Sessions récentes)</h4>
+                                <table class="admin-table" style="background: white;">
+                                    <thead>
+                                        <tr><th>Page / Section</th><th>Visites</th><th>Taux de Rebond</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td><code>#boutique</code> (Catalogue Général)</td><td><strong>1 240</strong></td><td>24%</td></tr>
+                                        <tr><td><code>#concours/douanes</code> (Concours Douanes)</td><td><strong>890</strong></td><td>18%</td></tr>
+                                        <tr><td><code>#concours/ena</code> (Concours ENA)</td><td><strong>740</strong></td><td>21%</td></tr>
+                                        <tr><td><code>#formations</code> (Cours Vidéo)</td><td><strong>520</strong></td><td>30%</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4. TAB VENTES / COMMANDES -->
+                    <div class="admin-tab-content hidden" id="adminTabOrders">
+                        <div style="background: white; border-radius: 12px; border: 1px solid var(--border); padding: 1.5rem;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem;">
+                                <h3><i class="fa-solid fa-receipt"></i> Historique des Commandes</h3>
+                                <div style="display:flex; gap:0.5rem;">
+                                    <select id="adminOrderFilterStatus" style="padding:0.5rem; border:1px solid var(--border); border-radius:6px; background:white;">
+                                        <option value="all">Tous les statuts</option>
+                                        <option value="pending">En attente</option>
+                                        <option value="paid">Payé</option>
+                                        <option value="delivered">Livré</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="admin-table-container">
+                                <table class="admin-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Client</th>
+                                            <th>Produits</th>
+                                            <th>Total</th>
+                                            <th>Statut</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="adminOrdersTableBody">
+                                        <!-- JS Populated -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 5. TAB BASE CLIENTS -->
+                    <div class="admin-tab-content hidden" id="adminTabCustomers">
+                        <div style="background: white; border-radius: 12px; border: 1px solid var(--border); padding: 1.5rem;">
+                            <h3 style="margin-bottom:1.5rem;"><i class="fa-solid fa-users"></i> Repertoire des Clients &amp; Étudiants Inscrits</h3>
+                            <div class="admin-table-container">
+                                <table class="admin-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Nom / Prénom</th>
+                                            <th>Email Client</th>
+                                            <th>Téléphone WhatsApp</th>
+                                            <th>Statut Compte</th>
+                                            <th>Contact Direct</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="adminUsersTableBody">
+                                        <!-- JS Populated -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 6. TAB PANIERS ABANDONNÉS -->
+                    <div class="admin-tab-content hidden" id="adminTabAbandoned">
+                        <div style="background: white; border-radius: 12px; border: 1px solid var(--border); padding: 1.5rem;">
+                            <h3 style="margin-bottom:1.5rem;"><i class="fa-solid fa-cart-arrow-down"></i> Paniers Abandonnés (Relance Client)</h3>
+                            <div class="admin-table-container">
+                                <table class="admin-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Client / Identifiant</th>
+                                            <th>Produits Abandonnés</th>
+                                            <th>Valeur Panier</th>
+                                            <th>Action Relance</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="adminAbandonedTableBody">
+                                        <!-- JS Populated -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 7. TAB ANALYTIQUES -->
+                    <div class="admin-tab-content hidden" id="adminTabAnalytics">
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
+                            <div style="background: white; border-radius: 12px; border: 1px solid var(--border); padding: 1.5rem;">
+                                <h3 style="font-size:1.05rem; margin-bottom:1rem;"><i class="fa-solid fa-chart-pie"></i> Ventes par Catégorie</h3>
+                                <div style="height: 250px;">
+                                    <canvas id="categoryChart"></canvas>
+                                </div>
+                            </div>
+                            <div style="background: white; border-radius: 12px; border: 1px solid var(--border); padding: 1.5rem;">
+                                <h3 style="font-size:1.05rem; margin-bottom:1rem;"><i class="fa-solid fa-ranking-star"></i> Classement Top 5 Meilleurs Ventes</h3>
+                                <ul style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:0.75rem;" id="adminTop5List">
+                                    <li style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border); padding-bottom:0.4rem;"><span>1. Fascicule Concours ENA 2026</span> <strong>42 ventes</strong></li>
+                                    <li style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border); padding-bottom:0.4rem;"><span>2. Fascicule Douanes Sénégalaises</span> <strong>38 ventes</strong></li>
+                                    <li style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border); padding-bottom:0.4rem;"><span>3. Annales Police Nationale 8 ans</span> <strong>31 ventes</strong></li>
+                                    <li style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border); padding-bottom:0.4rem;"><span>4. Fascicule Concours Sage-femme</span> <strong>24 ventes</strong></li>
+                                    <li style="display:flex; justify-content:space-between;"><span>5. Fascicule Concours EPT (Thiès)</span> <strong>19 ventes</strong></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 8. TAB PARAMÈTRES & CLOUD SUPABASE -->
+                    <div class="admin-tab-content hidden" id="adminTabSettings">
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem;">
+                            <!-- Site Configuration Card -->
+                            <div style="background: white; border-radius: 12px; border: 1px solid var(--border); padding: 1.5rem;">
+                                <h3 style="margin-bottom: 1rem; color: var(--blue-deep);"><i class="fa-solid fa-sliders"></i> Coordonnées &amp; Contact du Site</h3>
+                                <form id="adminSettingsForm">
+                                    <div class="form-group" style="margin-bottom:1rem;">
+                                        <label style="font-weight:600; display:block; margin-bottom:0.3rem;">Numéro WhatsApp Support</label>
+                                        <input type="text" id="settingWhatsApp" value="+221765749343" style="width:100%; padding:0.6rem; border:1px solid var(--border); border-radius:8px;">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom:1rem;">
+                                        <label style="font-weight:600; display:block; margin-bottom:0.3rem;">Email Officiel</label>
+                                        <input type="email" id="settingEmail" value="contact@skacademia.sn" style="width:100%; padding:0.6rem; border:1px solid var(--border); border-radius:8px;">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom:1.25rem;">
+                                        <label style="font-weight:600; display:block; margin-bottom:0.3rem;">Adresse / Localisation</label>
+                                        <input type="text" id="settingAddress" value="Dakar, Sénégal" style="width:100%; padding:0.6rem; border:1px solid var(--border); border-radius:8px;">
+                                    </div>
+                                    <button type="submit" class="btn-primary" style="width:100%;">💾 Enregistrer les Paramètres</button>
+                                </form>
+                            </div>
+
+                            <!-- Supabase Credentials Card -->
+                            <div style="background: white; border-radius: 12px; border: 1px solid var(--border); padding: 1.5rem;">
+                                <h3 style="margin-bottom: 1rem; color: var(--blue-deep);"><i class="fa-solid fa-cloud"></i> Connexion Base de Données Cloud Supabase</h3>
+                                <form id="adminSupabaseForm">
+                                    <div class="form-group" style="margin-bottom:1rem;">
+                                        <label style="font-weight:600; display:block; margin-bottom:0.3rem;">Supabase Project URL</label>
+                                        <input type="text" id="settingSupabaseUrl" placeholder="https://xyz.supabase.co" style="width:100%; padding:0.6rem; border:1px solid var(--border); border-radius:8px;">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom:1.25rem;">
+                                        <label style="font-weight:600; display:block; margin-bottom:0.3rem;">Supabase Anon Key</label>
+                                        <input type="password" id="settingSupabaseKey" placeholder="eyJhbGciOiJIUzI1Ni..." style="width:100%; padding:0.6rem; border:1px solid var(--border); border-radius:8px;">
+                                    </div>
+                                    <button type="submit" class="btn-secondary" style="width:100%; margin-bottom:0.5rem;">⚡ Tester &amp; Enregistrer la Connexion</button>
+                                </form>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </main>
@@ -1166,6 +1531,54 @@
         </div>
     </section>
 
+    <!-- SECTION CGU & POLITIQUE DE CONFIDENTIALITÉ -->
+    <section id="cgu" class="section page-section hidden-section" style="padding-top: 100px; padding-bottom: 4rem;">
+        <div style="max-width: 900px; margin: 0 auto; background: white; border: 1px solid var(--border); border-radius: 12px; padding: 2.5rem; box-shadow: var(--shadow-sm);">
+            <div style="border-bottom: 2px solid var(--orange); padding-bottom: 1rem; margin-bottom: 1.5rem;">
+                <h1 style="color: var(--blue-deep); font-size: 1.8rem; margin-bottom: 0.5rem;">📜 Conditions Générales d'Utilisation &amp; Politique de Confidentialité</h1>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Dernière mise à jour : Août 2026 — Protection des Données Personnelles (Sénégal)</p>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 1.5rem; line-height: 1.7; font-size: 0.95rem; color: var(--text-dark);">
+                <div>
+                    <h3 style="color: var(--blue-deep); font-size: 1.2rem; margin-bottom: 0.5rem;">1. Collecte et Traitement des Données Personnelles</h3>
+                    <p>Lors de votre navigation, inscription ou commande sur la plateforme <strong>SK ACADEMIA</strong>, nous collectons les informations suivantes :</p>
+                    <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+                        <li><strong>Identité :</strong> Nom et Prénom</li>
+                        <li><strong>Coordonnées :</strong> Adresse e-mail et Numéro de téléphone (WhatsApp)</li>
+                        <li><strong>Activité :</strong> Historique d'achats de fascicules, suivi des formations et paniers.</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 style="color: var(--blue-deep); font-size: 1.2rem; margin-bottom: 0.5rem;">2. Stockage et Sécurité des Données</h3>
+                    <p>Vos informations personnelles sont stockées localement dans votre navigateur (via <code>localStorage / sk_academia_users</code>) et synchronisées avec notre base de données Cloud PostgreSQL sécurisée (Supabase).</p>
+                    <p style="margin-top: 0.5rem;">Vos mots de passe ne sont <strong>jamais stockés en clair</strong> : ils sont chiffrés et hachés avec l'algorithme <strong>SHA-256</strong> avant enregistrement.</p>
+                </div>
+
+                <div>
+                    <h3 style="color: var(--blue-deep); font-size: 1.2rem; margin-bottom: 0.5rem;">3. Finalité de l'Utilisation</h3>
+                    <p>Les données sont strictement utilisées pour :</p>
+                    <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+                        <li>Délivrer vos accès aux fascicules numériques et cours vidéo.</li>
+                        <li>Assurer la confirmation et le suivi manuel de vos commandes via notre support officiel WhatsApp.</li>
+                        <li>Gérer votre Espace Étudiant et votre progression académique.</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 style="color: var(--blue-deep); font-size: 1.2rem; margin-bottom: 0.5rem;">4. Vos Droits (Accès, Rectification, Suppression)</h3>
+                    <p>Vous disposez d'un droit permanent d'accès, de modification et de suppression de vos données personnelles.</p>
+                    <p style="margin-top: 0.5rem;">Pour exercer ce droit ou supprimer votre compte, contactez-nous à <a href="mailto:contact@skacademia.sn" style="color: var(--blue-accent); font-weight: 600;">contact@skacademia.sn</a> ou par WhatsApp au <a href="https://wa.me/221765749343" target="_blank" style="color: var(--blue-accent); font-weight: 600;">+221 76 574 93 43</a>.</p>
+                </div>
+            </div>
+
+            <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border); text-align: center;">
+                <a href="#accueil" class="btn-primary">← Retour à l'Accueil</a>
+            </div>
+        </div>
+    </section>
+
     <!-- FOOTER -->
     <footer class="footer">
         <div class="footer-inner">
@@ -1173,37 +1586,36 @@
                 <div class="footer-logo">🎓 SK ACADEMIA</div>
                 <p>Fascicules numériques, cours vidéo, et formations en informatique de qualité pour exceller aux concours sénégalais.</p>
                 <div class="footer-socials">
-                    <a href="#">📘</a>
-                    <a href="#">📸</a>
-                    <a href="#">💬</a>
-                    <a href="#">▶️</a>
+                    <a href="https://facebook.com/skacademia.sn" target="_blank" rel="noopener" title="Facebook">📘</a>
+                    <a href="https://instagram.com/skacademia.sn" target="_blank" rel="noopener" title="Instagram">📸</a>
+                    <a href="https://wa.me/221765749343" target="_blank" rel="noopener" title="WhatsApp">💬</a>
+                    <a href="https://youtube.com/@skacademia" target="_blank" rel="noopener" title="YouTube">▶️</a>
                 </div>
             </div>
             <div class="footer-col">
-                <h4>Accueil</h4>
+                <h4>Navigation</h4>
                 <a href="#accueil">Accueil</a>
                 <a href="#boutique">Boutique</a>
-                <a href="#concours">Préparation concours</a>
+                <a href="#concours">Préparation Concours</a>
                 <a href="#formations">Formations</a>
                 <a href="#contact">Contact</a>
             </div>
             <div class="footer-col">
-                <h4>Formations</h4>
-                <a href="#">Concours</a>
-                <a href="#">Formations Informatique</a>
-                <a href="#">Préparation concours</a>
-                <a href="#">Print</a>
-                <a href="#">Complètes</a>
+                <h4>Légal &amp; Infos</h4>
+                <a href="#cgu">📜 CGU &amp; Confidentialité</a>
+                <a href="#about">À Propos</a>
+                <a href="#simulator">Simulateur Concours</a>
+                <a href="#countdowns">Calendrier Officiel</a>
             </div>
             <div class="footer-col">
-                <h4>Contact</h4>
+                <h4>Contact Officiel</h4>
                 <p>📧 <span id="contactEmailFooter">contact@skacademia.sn</span></p>
                 <p>📞 <span id="contactPhoneFooter">+221 76 574 93 43</span></p>
                 <p>📍 <span id="contactAddressFooter">Dakar, Sénégal</span></p>
             </div>
         </div>
         <div class="footer-bottom">
-            <p>© 2026 SK ACADEMIA — Tous droits réservés | Excellence Académique au Sénégal 🇸🇳</p>
+            <p>© 2026 SK ACADEMIA — Tous droits réservés | <a href="#cgu" style="color: rgba(255,255,255,0.7); text-decoration: underline;">Politique de Confidentialité</a></p>
         </div>
     </footer>
 
@@ -1252,9 +1664,15 @@
             <button class="btn-secondary btn-sm" id="nextPageBtn">Suivant →</button>
         </div>
 
-        <!-- Document Viewer Content Area -->
-        <div id="previewDocBody" style="background: white; border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; min-height: 320px; max-height: 420px; overflow-y: auto; font-family: var(--font-body); font-size: 0.9rem; line-height: 1.6; position: relative;">
-            <!-- JS Populated Page Content -->
+        <!-- Document Viewer Content Area inside Browser Mockup -->
+        <div class="app-mockup-frame" style="margin-top: 0.75rem;">
+            <div class="mockup-chrome">
+                <div class="mockup-dots"><span class="mockup-dot red"></span><span class="mockup-dot yellow"></span><span class="mockup-dot green"></span></div>
+                <div class="mockup-urlbar">🔒 app.skacademia.sn/reader/preview-10p</div>
+            </div>
+            <div id="previewDocBody" style="background: white; padding: 1.5rem; min-height: 320px; max-height: 420px; overflow-y: auto; font-family: var(--font-body); font-size: 0.9rem; line-height: 1.6; position: relative;">
+                <!-- JS Populated Page Content -->
+            </div>
         </div>
 
         <div style="margin-top: 1rem; display: flex; gap: 0.75rem; align-items: center; justify-content: space-between; background: #eff6ff; padding: 0.8rem 1.2rem; border-radius: 8px; border: 1px solid #bfdbfe; flex-wrap:wrap;">
@@ -1566,6 +1984,31 @@
                                     <input type="text" id="settingAddress" placeholder="Dakar, Sénégal" required style="width:100%; padding:0.8rem; border:1px solid var(--border); border-radius:8px;">
                                 </div>
                                 <button type="submit" class="auth-submit" style="margin-top: 1rem;">Sauvegarder les paramètres</button>
+                            </form>
+                        </div>
+
+                        <!-- SUPABASE CONFIGURATION CARD -->
+                        <div style="background: white; border: 1px solid var(--border); border-radius: 12px; padding: 2rem; max-width: 600px; box-shadow: var(--shadow-sm); margin-top: 2rem;">
+                            <h3 style="color: var(--blue-deep); margin-bottom: 0.8rem; font-size: 1.15rem; display: flex; align-items: center; gap: 0.5rem;">
+                                ⚡ Connexion Supabase (Base de Données Cloud)
+                            </h3>
+                            <p style="margin-bottom: 1.2rem; color: var(--text-muted); font-size: 0.88rem; line-height: 1.5;">
+                                Connectez votre application à Supabase PostgreSQL. Exécutez d'abord le script <a href="supabase_schema.sql" target="_blank" style="color: var(--orange-dark); font-weight:600;">supabase_schema.sql</a> dans le SQL Editor de Supabase, puis saisissez vos identifiants ci-dessous.
+                            </p>
+                            <form id="adminSupabaseForm" style="display: flex; flex-direction: column; gap: 1.2rem;">
+                                <div>
+                                    <label style="display:block; font-weight:600; margin-bottom:0.4rem; color:var(--text-dark); font-size: 0.9rem;">Project URL Supabase</label>
+                                    <input type="url" id="settingSupabaseUrl" placeholder="https://xyzcompany.supabase.co" style="width:100%; padding:0.8rem; border:1px solid var(--border); border-radius:8px; font-family: monospace;">
+                                </div>
+                                <div>
+                                    <label style="display:block; font-weight:600; margin-bottom:0.4rem; color:var(--text-dark); font-size: 0.9rem;">Anon Key Public Supabase</label>
+                                    <input type="password" id="settingSupabaseKey" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6..." style="width:100%; padding:0.8rem; border:1px solid var(--border); border-radius:8px; font-family: monospace;">
+                                </div>
+                                <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                                    <button type="submit" class="auth-submit" style="flex: 1; margin: 0; padding: 0.75rem;">💾 Sauvegarder Clés Supabase</button>
+                                    <button type="button" id="btnTestSupabase" class="btn btn-secondary" onclick="testSupabaseConnection()" style="padding: 0.75rem 1rem;">⚡ Tester Connexion</button>
+                                </div>
+                                <div id="supabaseStatusBadge" style="display: none; padding: 0.75rem; border-radius: 8px; font-size: 0.85rem; font-weight: 600; text-align: center; margin-top: 0.5rem;"></div>
                             </form>
                         </div>
                     </div>

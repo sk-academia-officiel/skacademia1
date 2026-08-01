@@ -1808,3 +1808,351 @@ input, textarea, .selectable {
     .hero-stat strong { font-size: 1.3rem; }
     .hero-buttons { flex-direction: column; align-items: center; }
 }
+
+/* ===== INSPIRATION EKOLBI — DESIGN EXTENSIONS ===== */
+
+/* 1. Official Compliance Badge */
+.badge-official {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.25rem 0.65rem;
+    border-radius: 20px;
+}
+.badge-official-pulse {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    animation: pulse 1.6s infinite;
+}
+
+/* 2. Browser Mockup Frame (SaaS Preview Style) */
+.app-mockup-frame {
+    background: #1e293b;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+.mockup-chrome {
+    background: #0f172a;
+    padding: 0.6rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.mockup-dots {
+    display: flex;
+    gap: 6px;
+}
+.mockup-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+.mockup-dot.red { background: #ef4444; }
+.mockup-dot.yellow { background: #f59e0b; }
+.mockup-dot.green { background: #10b981; }
+.mockup-urlbar {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+    font-family: monospace;
+    font-size: 0.78rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.mockup-content {
+    background: #f8fafc;
+    padding: 1.5rem;
+}
+
+/* 3. Comparison Table (Méthodes Classiques vs SK ACADEMIA) */
+.comparison-matrix {
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: white;
+    box-shadow: var(--shadow-sm);
+}
+.comparison-header {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1fr;
+    background: var(--blue-deep);
+    color: white;
+    font-weight: 700;
+    padding: 1rem 1.5rem;
+}
+.comparison-row {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1fr;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    align-items: center;
+    font-size: 0.9rem;
+}
+.comparison-row:nth-child(even) {
+    background: #f8fafc;
+}
+.comparison-row:last-child {
+    border-bottom: none;
+}
+.comparison-cell-highlight {
+    background: #fff7ed;
+    color: var(--blue-deep);
+    font-weight: 600;
+    border-left: 2px solid var(--orange);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+}
+
+/* 4. Journey Steps (Parcours Candidat 3 Étapes) */
+.journey-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+.journey-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.75rem 1.5rem;
+    position: relative;
+    transition: var(--transition);
+}
+.journey-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--orange);
+}
+.journey-number {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: var(--orange);
+    color: white;
+    font-weight: 800;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+    box-shadow: 0 4px 12px rgba(245, 166, 35, 0.3);
+}
+
+@media (max-width: 768px) {
+    .comparison-header, .comparison-row {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+}
+
+/* ===== TABLEAU DE BORD ADMIN PROFESSIONNEL (SHOPIFY STYLE) ===== */
+.admin-layout {
+    display: flex;
+    min-height: calc(100vh - 70px);
+    background: #f8fafc;
+}
+.admin-sidebar {
+    width: 260px;
+    background: #0f172a;
+    color: #94a3b8;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: all 0.3s ease;
+    z-index: 100;
+}
+.admin-sidebar-brand {
+    padding: 1.25rem 1.5rem;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: white;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+.admin-nav {
+    padding: 1rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+.admin-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.7rem 1rem;
+    border-radius: 8px;
+    color: #94a3b8;
+    font-weight: 500;
+    font-size: 0.88rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    transition: all 0.2s ease;
+}
+.admin-nav-item i {
+    font-size: 1rem;
+    width: 20px;
+    text-align: center;
+}
+.admin-nav-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+}
+.admin-nav-item.active {
+    background: #fff7ed;
+    color: #102a4a;
+    font-weight: 700;
+    border-left: 4px solid #f5a623;
+}
+.admin-nav-item.active i {
+    color: #f5a623;
+}
+
+.admin-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+}
+.admin-topbar {
+    background: white;
+    padding: 1rem 2rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+.admin-topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+.admin-page-title h2 {
+    font-size: 1.25rem;
+    color: var(--blue-deep);
+    margin: 0;
+}
+.admin-page-title p {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin: 0;
+}
+.admin-topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+.admin-user-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: var(--blue-pale);
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--blue-deep);
+}
+
+.admin-body {
+    padding: 2rem;
+    flex: 1;
+}
+
+/* Stat Cards Grid */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+}
+.stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.25rem;
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+.stat-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+}
+.stat-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+}
+.stat-icon.orange { background: #fff7ed; color: #f5a623; }
+.stat-icon.blue { background: #eff6ff; color: #3b82f6; }
+.stat-icon.green { background: #ecfdf5; color: #10b981; }
+.stat-icon.purple { background: #f3e8ff; color: #a855f7; }
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--blue-deep);
+    line-height: 1.2;
+}
+.stat-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+.stat-trend {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.15rem 0.4rem;
+    border-radius: 12px;
+}
+.stat-trend.up { background: #dcfce7; color: #15803d; }
+.stat-trend.down { background: #fee2e2; color: #dc2626; }
+
+@media (max-width: 900px) {
+    .admin-sidebar {
+        position: fixed;
+        left: -260px;
+        top: 70px;
+        bottom: 0;
+    }
+    .admin-sidebar.open {
+        left: 0;
+    }
+    #adminMobileToggle {
+        display: inline-flex !important;
+    }
+    .admin-body {
+        padding: 1rem;
+    }
+}
+
+

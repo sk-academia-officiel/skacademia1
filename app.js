@@ -23,15 +23,10 @@ const hashPassword = async (password) => {
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 };
 
-// Pre-computed hash of "ADMIN2508" with salt (generated once)
-// To regenerate: hashPassword("ADMIN2508").then(h => console.log(h))
-const ADMIN_PASSWORD_HASH = null; // Will be computed at startup
-let _adminHashCache = null;
-
+// TODO: authentification admin actuellement non sécurisée (localStorage uniquement) — à remplacer par un vrai backend avant mise en production.
+const ADMIN_PASSWORD_HASH = "84489a7101859c0cae687bdfae032ec8bd6efbf21fafe2a0edbb32aa4e3ffae8";
 const getAdminHash = async () => {
-    if (_adminHashCache) return _adminHashCache;
-    _adminHashCache = await hashPassword("ADMIN2508");
-    return _adminHashCache;
+    return ADMIN_PASSWORD_HASH;
 };
 
 // ---- RATE LIMITING (ANTI BRUTE-FORCE) ----
@@ -231,6 +226,7 @@ const ROUTES = {
     "formations": ["formations", "documents"], // Formations affiche aussi les documents
     "about": ["about", "services"],       // A Propos affiche aussi les services
     "contact": ["contact"],
+    "cgu": ["cgu"],                       // CGU & Politique de Confidentialité
     "dashboard": ["dashboard"],           // NEW: Espace étudiant
     "course": ["course"],                 // NEW: Course player
     "admin": ["admin"]                    // NEW: Espace Admin
@@ -424,7 +420,7 @@ const simulatePayment = (method) => {
     
     // Simulate API delay for mobile money prompt
     const emoji = method === 'Wave' ? '🌊' : '🟠';
-    showToast("⏳", `Initialisation du paiement ${method}... Veuillez confirmer sur votre téléphone.`, 5000);
+    showToast("⏳", `Demande de paiement ${method} initiée... Confirmation manuelle sous quelques minutes via WhatsApp.`, 5000);
     
     setTimeout(() => {
         // Save items to user's purchases
@@ -485,7 +481,7 @@ const DEFAULT_PRODUCTS = [
   { id: 7, type: "fascicule", category: "securite", icon: "👮", bg: "bg-secu", catLabel: "cat-lbl-secu", catName: "Sécurité & Défense", title: "Fascicule — Concours Police Nationale", desc: "Culture générale, dictée, QCM logique, math, et préparation aux épreuves physiques.", price: 10000, typeName: "Fascicule" },
   { id: 8, type: "annale", category: "securite", icon: "📜", bg: "bg-secu", catLabel: "cat-lbl-secu", catName: "Sécurité & Défense", title: "Annales Police Nationale — 8 ans", desc: "8 années d'épreuves corrigées avec les critères de notation officiels.", price: 7000, typeName: "Annale" },
   { id: 9, type: "fascicule", category: "securite", icon: "🪖", bg: "bg-secu", catLabel: "cat-lbl-secu", catName: "Sécurité & Défense", title: "Fascicule — Concours Gendarmerie Nationale", desc: "Préparation complète pour la gendarmerie : épreuves écrites et guide physique.", price: 10000, typeName: "Fascicule" },
-  { id: 10, type: "fascicule", category: "securite", icon: "🛃", bg: "bg-secu", catLabel: "cat-lbl-secu", catName: "Sécurité & Défense", title: "Fascicule — Concours Douanes Sénégalaises", desc: "Économie, droit douanier, mathématiques et culture générale pour les douanes.", price: 12000, typeName: "Fascicule" },
+  { id: 10, type: "fascicule", category: "douanes", icon: "🛃", bg: "bg-secu", catLabel: "cat-lbl-secu", catName: "Douanes Sénégalaises", title: "Fascicule — Concours Douanes Sénégalaises", desc: "Économie, droit douanier, mathématiques et culture générale pour les douanes.", price: 12000, typeName: "Fascicule" },
   { id: 11, type: "fascicule", category: "securite", icon: "⭐", bg: "bg-secu", catLabel: "cat-lbl-secu", catName: "Sécurité & Défense", title: "Fascicule — Concours ENSOA", desc: "Toutes les épreuves de l'ENSOA : sciences, mathématiques, culture générale et discipline militaire.", price: 10000, typeName: "Fascicule" },
   { id: 12, type: "cours", category: "securite", icon: "📖", bg: "bg-secu", catLabel: "cat-lbl-secu", catName: "Sécurité & Défense", title: "Cours PDF — Culture Générale Sécurité", desc: "Cours de culture générale axé sur les thèmes abordés dans les concours de la sécurité.", price: 4000, typeName: "Cours PDF" },
   { id: 13, type: "fascicule", category: "sante", icon: "🤱", bg: "bg-sante", catLabel: "cat-lbl-sante", catName: "Santé & Social", title: "Fascicule — Concours Sage-femme", desc: "Biologie, chimie, sciences naturelles, physique et test psychotechnique pour le concours sage-femme.", price: 12000, typeName: "Fascicule" },
@@ -503,30 +499,222 @@ const DEFAULT_PRODUCTS = [
   { id: 25, type: "formation", category: "formation", icon: "📊", bg: "bg-form", catLabel: "cat-lbl-form", catName: "Formations Informatique", title: "Formation Bureautique & Excel Avancé", desc: "Tableaux croisés dynamiques, formules complexes, VBA et mise en page professionnelle.", price: 25000, typeName: "Formation" }
 ];
 
-// Initialize or Load state
-let PRODUCTS = [];
+// ==========================================
+//  ⚡ MODULE CLOUD SUPABASE (Sync PostgreSQL)
+// ==========================================
+let supabaseClient = null;
 
-const loadDatabase = async () => {
-    // Check if products exist in localStorage first to preserve admin additions
-    const savedLocal = localStorage.getItem('sk_products');
-    if (savedLocal) {
+const getSupabaseCredentials = () => {
+    return {
+        url: localStorage.getItem('sk_supabase_url') || 'https://igqwayiihhinrxhzlqcu.supabase.co',
+        key: localStorage.getItem('sk_supabase_key') || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlncXdheWlpaGhpbnJ4aHpscWN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5MzYzMDMsImV4cCI6MjEwMDUxMjMwM30.N9G0DbgCL6QLkzbbFhuIKJzDAV5j8Mykuq80YmP_OHo'
+    };
+};
+
+const initSupabase = () => {
+    const creds = getSupabaseCredentials();
+    if (creds.url && creds.key && typeof supabase !== 'undefined' && supabase.createClient) {
         try {
-            PRODUCTS = JSON.parse(savedLocal);
-        } catch(e) { PRODUCTS = []; }
+            supabaseClient = supabase.createClient(creds.url, creds.key);
+            return true;
+        } catch (e) {
+            console.warn("⚠️ Erreur d'initialisation Supabase :", e);
+            supabaseClient = null;
+            return false;
+        }
+    }
+    supabaseClient = null;
+    return false;
+};
+
+const testSupabaseConnection = async () => {
+    const badge = document.getElementById("supabaseStatusBadge");
+    const urlInput = document.getElementById("settingSupabaseUrl");
+    const keyInput = document.getElementById("settingSupabaseKey");
+    
+    const url = urlInput ? urlInput.value.trim() : '';
+    const key = keyInput ? keyInput.value.trim() : '';
+
+    if (!url || !key) {
+        if (badge) {
+            badge.style.display = "block";
+            badge.style.background = "#fee2e2";
+            badge.style.color = "#dc2626";
+            badge.textContent = "❌ Veuillez renseigner l'URL et la clé Anon Supabase.";
+        }
+        return false;
     }
 
-    if (!PRODUCTS || PRODUCTS.length === 0) {
-        try {
-            const res = await fetch('database.json?ts=' + new Date().getTime());
-            if (!res.ok) throw new Error("Fichier introuvable");
-            PRODUCTS = await res.json();
-        } catch (e) {
-            PRODUCTS = DEFAULT_PRODUCTS;
+    if (typeof supabase === 'undefined') {
+        if (badge) {
+            badge.style.display = "block";
+            badge.style.background = "#fee2e2";
+            badge.style.color = "#dc2626";
+            badge.textContent = "❌ Le SDK Supabase JS n'est pas encore disponible.";
+        }
+        return false;
+    }
+
+    try {
+        const client = supabase.createClient(url, key);
+        const { data, error } = await client.from('products').select('count', { count: 'exact', head: true });
+        if (error) throw error;
+
+        if (badge) {
+            badge.style.display = "block";
+            badge.style.background = "#dcfce7";
+            badge.style.color = "#166534";
+            badge.textContent = "✅ Connexion réussie à Supabase PostgreSQL ! Vos tables sont accessibles.";
+        }
+        return true;
+    } catch (err) {
+        if (badge) {
+            badge.style.display = "block";
+            badge.style.background = "#fee2e2";
+            badge.style.color = "#dc2626";
+            badge.textContent = `❌ Connexion échouée : ${err.message || 'Vérifiez les clés et les règles RLS dans Supabase'}`;
+        }
+        return false;
+    }
+};
+window.testSupabaseConnection = testSupabaseConnection;
+
+// Synchronisation Produits vers Supabase
+const loadProductsFromSupabase = async () => {
+    if (!initSupabase() || !supabaseClient) return null;
+    try {
+        const { data, error } = await supabaseClient.from('products').select('*').order('id', { ascending: true });
+        if (error) throw error;
+        if (data && data.length > 0) {
+            return data.map(p => ({
+                id: p.id,
+                type: p.type,
+                category: p.category,
+                icon: p.icon,
+                bg: p.bg,
+                catLabel: p.cat_label,
+                catName: p.cat_name,
+                title: p.title,
+                desc: p.desc_text || p.desc,
+                price: p.price,
+                typeName: p.type_name
+            }));
+        }
+    } catch (e) {
+        console.warn("⚠️ Impossible de lire la base Supabase, basculement en mode local :", e);
+    }
+    return null;
+};
+
+const saveProductsToSupabase = async (productsArray) => {
+    if (!initSupabase() || !supabaseClient) return;
+    try {
+        const rows = productsArray.map(p => ({
+            id: p.id,
+            type: p.type,
+            category: p.category,
+            icon: p.icon,
+            bg: p.bg,
+            cat_label: p.catLabel,
+            cat_name: p.catName,
+            title: p.title,
+            desc_text: p.desc,
+            price: p.price,
+            type_name: p.typeName
+        }));
+        await supabaseClient.from('products').upsert(rows);
+    } catch (e) {
+        console.warn("⚠️ Erreur de sauvegarde Produits dans Supabase :", e);
+    }
+};
+
+// Synchronisation Utilisateurs vers Supabase
+const syncUserToSupabase = async (user) => {
+    if (!user || !initSupabase() || !supabaseClient) return;
+    try {
+        await supabaseClient.from('users').upsert({
+            email: user.email,
+            password_hash: user.passwordHash || null,
+            first_name: user.firstName,
+            last_name: user.lastName,
+            phone: user.phone || null,
+            role: user.role || 'user',
+            is_subscribed: user.isSubscribed || false,
+            subscription_plan: user.subscriptionPlan || null,
+            subscription_date: user.subscriptionDate || null,
+            purchases: user.purchases || []
+        }, { onConflict: 'email' });
+    } catch (e) {
+        console.warn("⚠️ Erreur de synchronisation Utilisateur Supabase :", e);
+    }
+};
+
+// Synchronisation Commandes vers Supabase
+const saveOrderToSupabase = async (orderObj) => {
+    if (!initSupabase() || !supabaseClient) return;
+    try {
+        await supabaseClient.from('orders').upsert({
+            id: orderObj.id,
+            date: orderObj.date,
+            client: orderObj.client,
+            items: orderObj.items,
+            total: orderObj.total,
+            status: orderObj.status
+        });
+    } catch (e) {
+        console.warn("⚠️ Erreur de sauvegarde Commande Supabase :", e);
+    }
+};
+
+// Synchronisation Paniers Abandonnés vers Supabase
+const saveAbandonedCartToSupabase = async (cartObj) => {
+    if (!initSupabase() || !supabaseClient) return;
+    try {
+        await supabaseClient.from('abandoned_carts').upsert({
+            id: cartObj.id,
+            date: cartObj.date,
+            client: cartObj.client,
+            phone: cartObj.phone || null,
+            items: cartObj.items,
+            total: cartObj.total
+        });
+    } catch (e) {
+        console.warn("⚠️ Erreur de sauvegarde Panier Abandonné Supabase :", e);
+    }
+};
+
+// Initialize or Load state
+let PRODUCTS = [...DEFAULT_PRODUCTS];
+
+const loadDatabase = async () => {
+    // 1. Tenter le chargement depuis Supabase Cloud
+    const cloudProducts = await loadProductsFromSupabase();
+    if (cloudProducts && cloudProducts.length > 0) {
+        PRODUCTS = cloudProducts;
+        localStorage.setItem('sk_products', JSON.stringify(PRODUCTS));
+    } else {
+        // 2. Fallback localStorage
+        const savedLocal = localStorage.getItem('sk_products');
+        if (savedLocal) {
+            try {
+                PRODUCTS = JSON.parse(savedLocal);
+            } catch(e) { PRODUCTS = [...DEFAULT_PRODUCTS]; }
+        }
+
+        // 3. Fallback database.json ou DEFAULT_PRODUCTS
+        if (!PRODUCTS || PRODUCTS.length === 0) {
+            try {
+                const res = await fetch('database.json?ts=' + new Date().getTime());
+                if (!res.ok) throw new Error("Fichier introuvable");
+                PRODUCTS = await res.json();
+            } catch (e) {
+                PRODUCTS = [...DEFAULT_PRODUCTS];
+            }
         }
     }
     
     if (!PRODUCTS || PRODUCTS.length === 0) {
-        PRODUCTS = DEFAULT_PRODUCTS;
+        PRODUCTS = [...DEFAULT_PRODUCTS];
     }
 
     PRODUCTS.forEach(p => {
@@ -540,6 +728,7 @@ const loadDatabase = async () => {
 // Helper to save products and re-render all interfaces
 const saveProducts = () => {
     localStorage.setItem('sk_products', JSON.stringify(PRODUCTS));
+    saveProductsToSupabase(PRODUCTS);
     renderProducts();
     if (typeof renderAdminProducts === 'function') renderAdminProducts();
 };
@@ -563,7 +752,11 @@ const getFilteredProducts = () => {
     let list = PRODUCTS;
     if (currentFilter !== "all") {
         if (currentFilter === "concours") {
-            list = list.filter(p => ["administration", "securite", "sante", "grandes-ecoles", "enseignement"].includes(p.category) || ["fascicule", "annale", "cours"].includes(p.type));
+            list = list.filter(p => ["administration", "securite", "douanes", "sante", "grandes-ecoles", "enseignement"].includes(p.category) || ["fascicule", "annale", "cours"].includes(p.type));
+        } else if (currentFilter === "douanes" || currentFilter === "douane") {
+            list = list.filter(p => p.category === "douanes" || p.category === "douane" || (p.title && p.title.toLowerCase().includes("douane")));
+        } else if (currentFilter === "securite") {
+            list = list.filter(p => p.category === "securite" || p.category === "douanes" || p.category === "douane");
         } else {
             list = list.filter(p => p.category === currentFilter || p.type === currentFilter);
         }
@@ -797,8 +990,11 @@ const renderProducts = () => {
                 ${iconHtml}
             </div>
             <div class="product-body">
-                <span class="product-cat-label ${p.catLabel}">${p.catName}</span>
-                <h3 class="product-title">${p.title}</h3>
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.25rem;">
+                    <span class="product-cat-label ${p.catLabel}">${p.catName}</span>
+                    <span class="badge-official"><span class="badge-official-pulse"></span> Conforme 2026 🇸🇳</span>
+                </div>
+                <h3 class="product-title" style="margin-top:0.35rem;">${p.title}</h3>
                 <p class="product-desc">${p.desc}</p>
                 <div class="product-footer" style="display:flex; flex-direction:column; gap:0.5rem;">
                     <span class="product-price">${formatPrice(p.price)}</span>
@@ -1138,6 +1334,7 @@ registerForm.addEventListener("submit", async (e) => {
 
     users.push(newUser);
     saveUsers(users);
+    syncUserToSupabase(newUser);
     setCurrentUser(newUser);
     updateLastActivity();
 
@@ -2631,15 +2828,17 @@ const recordAdminOrder = (cartItems, total) => {
     const data = getAdminData();
     const today = new Date().toISOString().split('T')[0];
     
-    // Save Order
-    data.orders.unshift({
+    const newOrder = {
         id: 'CMD-' + Date.now().toString().slice(-6),
         date: new Date().toISOString(),
         client: user ? `${user.firstName} ${user.lastName}` : "Visiteur non connecté",
         items: cartItems.map(i => i.title).join(", "),
         total: total,
         status: "En attente de paiement (WhatsApp)"
-    });
+    };
+
+    // Save Order locally
+    data.orders.unshift(newOrder);
 
     // Update Daily Stats
     if (!data.dailyStats[today]) data.dailyStats[today] = { revenue: 0, orders: 0, visitors: Math.floor(Math.random() * 50) + 10 };
@@ -2650,6 +2849,8 @@ const recordAdminOrder = (cartItems, total) => {
     data.abandonedCarts = data.abandonedCarts.filter(c => c.client !== (user ? user.email : "Visiteur non connecté"));
 
     saveAdminData(data);
+    saveOrderToSupabase(newOrder); // Cloud Sync
+
     addActivityLog(`🛒 Nouvelle commande de ${formatPrice(total)} par ${user ? user.firstName : 'un visiteur'}.`);
     if(document.getElementById('adminTabOverview')) renderAdminDashboard();
 };
@@ -2664,17 +2865,20 @@ const recordAbandonedCart = (cartItems) => {
     // Remove old cart for this user
     data.abandonedCarts = data.abandonedCarts.filter(c => c.client !== clientKey);
     
-    // Save new cart
-    data.abandonedCarts.unshift({
+    const newCart = {
         id: 'ABN-' + Date.now().toString().slice(-6),
         date: new Date().toISOString(),
         client: clientKey,
         phone: user ? user.phone : null,
         items: cartItems.map(i => i.title).join(", "),
         total: total
-    });
+    };
+
+    // Save new cart
+    data.abandonedCarts.unshift(newCart);
 
     saveAdminData(data);
+    saveAbandonedCartToSupabase(newCart); // Cloud Sync
 };
 
 // Simulate Live Traffic for Demo
@@ -2700,18 +2904,151 @@ const simulateLiveTraffic = () => {
     }, 4000);
 };
 
-// Tab Switching
+// TODO: Intégrer une API de Web Analytics réelle (Plausible.io, Google Analytics 4, ou PostHog) pour alimenter le suivi des visiteurs en temps réel en production.
+
+const TAB_TITLES = {
+    overview: { title: "Vue d'Ensemble", subtitle: "Statistiques clés et performances de ventes en temps réel" },
+    products: { title: "Gestion du Catalogue Produits", subtitle: "Gestion des fascicules, annales, cours PDF et formations" },
+    visitors: { title: "Suivi du Trafic & Visiteurs", subtitle: "Mesures d'audience et fréquentation des pages du site" },
+    orders: { title: "Historique des Commandes", subtitle: "Suivi des transactions Wave, Orange Money et WhatsApp" },
+    customers: { title: "Répertoire des Clients & Étudiants", subtitle: "Base d'utilisateurs inscrits avec coordonnées sécurisées" },
+    abandoned: { title: "Paniers Abandonnés", subtitle: "Relance des prospects n'ayant pas finalisé la commande" },
+    analytics: { title: "Analytiques & Rapports", subtitle: "Graphiques de ventes par catégorie et top produits" },
+    settings: { title: "Paramètres & Configuration Cloud", subtitle: "Configuration des contacts du site et identifiants Supabase" }
+};
+
 window.switchAdminTab = (tabId) => {
     document.querySelectorAll('.admin-tab-content').forEach(el => el.classList.add('hidden'));
-    document.querySelectorAll('.admin-nav-btn').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.admin-nav-item').forEach(el => el.classList.remove('active'));
     
-    document.getElementById(`adminTab${tabId.charAt(0).toUpperCase() + tabId.slice(1)}`).classList.remove('hidden');
-    document.querySelector(`.admin-nav-btn[onclick="switchAdminTab('${tabId}')"]`).classList.add('active');
+    const tabEl = document.getElementById(`adminTab${tabId.charAt(0).toUpperCase() + tabId.slice(1)}`);
+    if (tabEl) tabEl.classList.remove('hidden');
 
-    if (tabId === 'analytics') {
-        renderAdminCharts();
+    const btn = document.querySelector(`.admin-nav-item[onclick="switchAdminTab('${tabId}')"]`);
+    if (btn) btn.classList.add('active');
+
+    const meta = TAB_TITLES[tabId] || TAB_TITLES['overview'];
+    const titleEl = document.getElementById('adminCurrentTabTitle');
+    const subTitleEl = document.getElementById('adminCurrentTabSubtitle');
+    if (titleEl) titleEl.textContent = meta.title;
+    if (subTitleEl) subTitleEl.textContent = meta.subtitle;
+
+    if (tabId === 'products') renderAdminProducts();
+    if (tabId === 'customers') renderAdminCustomers();
+    if (tabId === 'analytics') renderAdminCharts();
+};
+
+const renderAdminProducts = () => {
+    const tbody = document.getElementById("adminProductsTableBody");
+    if (!tbody) return;
+
+    const q = (document.getElementById("adminProductSearch")?.value || "").toLowerCase();
+    const cat = document.getElementById("adminProductCategoryFilter")?.value || "all";
+
+    let list = PRODUCTS;
+    if (cat !== "all") {
+        list = list.filter(p => p.category === cat || p.type === cat);
+    }
+    if (q) {
+        list = list.filter(p => p.title.toLowerCase().includes(q) || (p.desc && p.desc.toLowerCase().includes(q)));
+    }
+
+    if (list.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" style="text-align:center; padding: 3rem 1rem;">
+                    <div style="font-size:3rem; color:var(--text-muted); margin-bottom:0.75rem;"><i class="fa-solid fa-box-open"></i></div>
+                    <strong style="display:block; color:var(--blue-deep); font-size:1.1rem; margin-bottom:0.25rem;">Aucun produit pour le moment</strong>
+                    <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1rem;">Aucun produit ne correspond à votre recherche ou votre catalogue est vide.</p>
+                    <button class="btn-primary" onclick="openAdminModal()">+ Ajouter un Produit</button>
+                </td>
+            </tr>`;
+        return;
+    }
+
+    tbody.innerHTML = list.map(p => {
+        const imgStyle = p.image ? `<img src="${p.image}" style="width:40px; height:40px; border-radius:6px; object-fit:cover;">` : `<span style="font-size:1.5rem;">${p.icon || '📄'}</span>`;
+        return `
+            <tr>
+                <td>
+                    <div style="display:flex; align-items:center; gap:0.75rem;">
+                        ${imgStyle}
+                        <div>
+                            <strong style="color:var(--blue-deep); font-size:0.9rem; display:block;">${sanitizeHTML(p.title)}</strong>
+                            <span style="font-size:0.75rem; color:var(--text-muted);">${p.typeName || p.type}</span>
+                        </div>
+                    </div>
+                </td>
+                <td><span class="product-cat-label ${p.catLabel || 'cat-lbl-admin'}" style="font-size:0.75rem;">${p.catName || p.category}</span></td>
+                <td><strong style="color:var(--orange-dark);">${formatPrice(p.price)}</strong></td>
+                <td><span style="background:#dcfce7; color:#15803d; padding:0.2rem 0.6rem; border-radius:20px; font-size:0.75rem; font-weight:700;">Actif</span></td>
+                <td><span style="font-weight:600; font-size:0.85rem;">${Math.floor(Math.random() * 30) + 5} ventes</span></td>
+                <td>
+                    <div style="display:flex; gap:0.4rem;">
+                        <button class="btn-secondary btn-sm" onclick="editAdminProduct('${p.id}')" title="Modifier"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button class="btn-secondary btn-sm" onclick="deleteAdminProduct('${p.id}')" title="Supprimer" style="color:#ef4444;"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join("");
+};
+
+const openAdminModal = (prodId = null) => {
+    const overlay = document.getElementById("adminModalOverlay");
+    const modal = document.getElementById("adminModal");
+    const form = document.getElementById("adminProductForm");
+    if (!overlay || !modal || !form) return;
+
+    form.reset();
+    document.getElementById("adminProdId").value = "";
+
+    if (prodId) {
+        const p = PRODUCTS.find(prod => prod.id == prodId);
+        if (p) {
+            document.getElementById("adminProdId").value = p.id;
+            document.getElementById("adminProdTitle").value = p.title || "";
+            document.getElementById("adminProdType").value = p.type || "fascicule";
+            document.getElementById("adminProdCategory").value = p.category || "administration";
+            document.getElementById("adminProdPrice").value = p.price || 0;
+            document.getElementById("adminProdContent").value = p.content || "";
+            document.getElementById("adminProdImage").value = p.image || "";
+            document.getElementById("adminProdDesc").value = p.desc || "";
+        }
+    }
+
+    overlay.classList.add("show");
+    modal.classList.add("show");
+    document.body.style.overflow = "hidden";
+};
+
+const closeAdminModal = () => {
+    const overlay = document.getElementById("adminModalOverlay");
+    const modal = document.getElementById("adminModal");
+    if (overlay && modal) {
+        overlay.classList.remove("show");
+        modal.classList.remove("show");
+        document.body.style.overflow = "";
     }
 };
+
+const deleteAdminProduct = (id) => {
+    if (confirm("Voulez-vous vraiment supprimer ce produit du catalogue ?")) {
+        PRODUCTS = PRODUCTS.filter(p => p.id != id);
+        saveProducts();
+        renderAdminProducts();
+        showToast("🗑️", "Produit supprimé du catalogue avec succès.");
+    }
+};
+
+const editAdminProduct = (id) => {
+    openAdminModal(id);
+};
+
+window.openAdminModal = openAdminModal;
+window.closeAdminModal = closeAdminModal;
+window.deleteAdminProduct = deleteAdminProduct;
+window.editAdminProduct = editAdminProduct;
 
 const formatDate = (isoString) => {
     const d = new Date(isoString);
@@ -2732,6 +3069,56 @@ const renderActivityLog = () => {
         `).join("");
 };
 
+const maskEmail = (email) => {
+    if (!email || typeof email !== 'string' || !email.includes('@')) return email || '';
+    const [name, domain] = email.split('@');
+    if (name.length <= 2) return `${name}***@${domain}`;
+    return `${name.slice(0, 2)}***${name.slice(-1)}@${domain}`;
+};
+
+const maskPhone = (phone) => {
+    if (!phone || typeof phone !== 'string') return phone || '';
+    const cleaned = phone.trim();
+    if (cleaned.length < 6) return cleaned;
+    return `${cleaned.slice(0, 5)} *** ${cleaned.slice(-2)}`;
+};
+
+const renderAdminCustomers = () => {
+    const tbody = document.getElementById("adminUsersTableBody");
+    if (!tbody) return;
+    const users = getUsers();
+
+    if (users.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" style="text-align:center; padding: 2.5rem 1rem;">
+                    <div style="font-size:2.5rem; margin-bottom:0.5rem;">👥</div>
+                    <strong style="display:block; color:var(--blue-deep); font-size:1rem; margin-bottom:0.25rem;">Aucun client inscrit pour le moment</strong>
+                    <span style="font-size:0.85rem; color:var(--text-muted);">Les nouveaux comptes créés s'afficheront ici avec leurs coordonnées protégées.</span>
+                </td>
+            </tr>`;
+        return;
+    }
+
+    tbody.innerHTML = users.map(u => {
+        const maskedEmail = maskEmail(u.email);
+        const maskedPhone = maskPhone(u.phone);
+        const waLink = u.phone ? `https://wa.me/${u.phone.replace(/[^0-9+]/g, '')}` : "#";
+
+        return `
+            <tr>
+                <td style="font-weight:600; color:var(--blue-deep);">${sanitizeHTML(u.firstName || '')} ${sanitizeHTML(u.lastName || '')}</td>
+                <td style="font-size:0.85rem;"><code>${sanitizeHTML(maskedEmail)}</code></td>
+                <td style="font-size:0.85rem;"><code>${sanitizeHTML(maskedPhone)}</code></td>
+                <td><span style="background:${u.isSubscribed ? '#dcfce7' : '#f1f5f9'}; color:${u.isSubscribed ? '#15803d' : '#475569'}; padding:0.2rem 0.6rem; border-radius:20px; font-size:0.75rem; font-weight:700;">${u.isSubscribed ? '⭐ Premium' : 'Gratuit'}</span></td>
+                <td>
+                    ${u.phone ? `<a href="${waLink}" target="_blank" class="btn-secondary btn-sm" style="padding:0.3rem 0.6rem; font-size:0.75rem;">💬 Contacter</a>` : '-'}
+                </td>
+            </tr>
+        `;
+    }).join("");
+};
+
 const renderAdminDashboard = () => {
     const data = getAdminData();
     const users = getUsers();
@@ -2747,13 +3134,19 @@ const renderAdminDashboard = () => {
     renderActivityLog();
     
     // Render Customers Tab
-    if (typeof renderAdminCustomers === 'function') renderAdminCustomers();
+    renderAdminCustomers();
 
-    // Orders Table
+    // Orders Table (With Masking & Empty State)
     const ordersTbody = document.getElementById("adminOrdersTableBody");
     if (ordersTbody) {
         ordersTbody.innerHTML = data.orders.length === 0 
-            ? `<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Aucune commande enregistrée.</td></tr>`
+            ? `<tr>
+                <td colspan="5" style="text-align:center; padding: 2.5rem 1rem;">
+                    <div style="font-size:2.5rem; margin-bottom:0.5rem;">🛍️</div>
+                    <strong style="display:block; color:var(--blue-deep); font-size:1rem; margin-bottom:0.25rem;">Aucune commande enregistrée</strong>
+                    <span style="font-size:0.85rem; color:var(--text-muted);">Les commandes validées via le panier s'afficheront ici en temps réel.</span>
+                </td>
+              </tr>`
             : data.orders.map(o => `
                 <tr>
                     <td style="font-size:0.85rem; color:var(--text-muted);">${formatDate(o.date)}</td>
@@ -2765,17 +3158,24 @@ const renderAdminDashboard = () => {
             `).join("");
     }
 
-    // Abandoned Carts Table
+    // Abandoned Carts Table (With Masking & Empty State)
     const abandonedTbody = document.getElementById("adminAbandonedTableBody");
     if (abandonedTbody) {
         abandonedTbody.innerHTML = data.abandonedCarts.length === 0 
-            ? `<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Aucun panier abandonné.</td></tr>`
+            ? `<tr>
+                <td colspan="5" style="text-align:center; padding: 2.5rem 1rem;">
+                    <div style="font-size:2.5rem; margin-bottom:0.5rem;">🛒</div>
+                    <strong style="display:block; color:var(--blue-deep); font-size:1rem; margin-bottom:0.25rem;">Aucun panier abandonné</strong>
+                    <span style="font-size:0.85rem; color:var(--text-muted);">Les paniers non finalisés apparaîtront ici pour relance automatique.</span>
+                </td>
+              </tr>`
             : data.abandonedCarts.map(c => {
+                const maskedClient = c.client.includes('@') ? maskEmail(c.client) : c.client;
                 const waLink = c.phone ? `https://wa.me/${c.phone}?text=${encodeURIComponent(`Bonjour, nous avons remarqué que vous avez laissé des fascicules très importants dans votre panier sur SK ACADEMIA. Pouvons-nous vous aider à finaliser votre préparation ?`)}` : "#";
                 return `
                 <tr>
                     <td style="font-size:0.85rem; color:var(--text-muted);">${formatDate(c.date)}</td>
-                    <td style="font-weight:600;">${sanitizeHTML(c.client)}</td>
+                    <td style="font-weight:600;">${sanitizeHTML(maskedClient)}</td>
                     <td style="font-size:0.85rem;">${sanitizeHTML(c.items)}</td>
                     <td style="font-weight:700;">${formatPrice(c.total)}</td>
                     <td>
@@ -2867,6 +3267,8 @@ const renderAdminCharts = () => {
 
 // Initialize Dashboard if user is admin
 document.addEventListener("DOMContentLoaded", () => {
+    loadDatabase();
+    if (typeof renderProducts === 'function') renderProducts();
     if (typeof loadSiteConfig === 'function') loadSiteConfig();
     
     const settingsForm = document.getElementById("adminSettingsForm");
@@ -2882,6 +3284,107 @@ document.addEventListener("DOMContentLoaded", () => {
             localStorage.setItem('sk_site_config', JSON.stringify(newConfig));
             loadSiteConfig();
             showToast("✅", "Paramètres enregistrés avec succès !");
+        });
+    }
+
+    // Gestion du formulaire Supabase
+    const supabaseForm = document.getElementById("adminSupabaseForm");
+    if (supabaseForm) {
+        const urlInput = document.getElementById("settingSupabaseUrl");
+        const keyInput = document.getElementById("settingSupabaseKey");
+        if (urlInput) urlInput.value = localStorage.getItem('sk_supabase_url') || '';
+        if (keyInput) keyInput.value = localStorage.getItem('sk_supabase_key') || '';
+
+        supabaseForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const newUrl = urlInput.value.trim();
+            const newKey = keyInput.value.trim();
+            localStorage.setItem('sk_supabase_url', newUrl);
+            localStorage.setItem('sk_supabase_key', newKey);
+
+            showToast("⏳", "Vérification de la connexion Supabase...");
+            const ok = await testSupabaseConnection();
+            if (ok) {
+                showToast("⚡", "Clés Supabase enregistrées ! Synchronisation de la base...");
+                await loadDatabase();
+            } else {
+                showToast("⚠️", "Clés enregistrées mais la connexion a échoué. Vérifiez vos clés et règles RLS.");
+            }
+        });
+    }
+
+    // Product search & filter in Admin
+    const searchInput = document.getElementById("adminProductSearch");
+    const catFilter = document.getElementById("adminProductCategoryFilter");
+    if (searchInput) searchInput.addEventListener("input", renderAdminProducts);
+    if (catFilter) catFilter.addEventListener("change", renderAdminProducts);
+
+    // Product Modal Form Submission
+    const productForm = document.getElementById("adminProductForm");
+    const adminModalClose = document.getElementById("adminModalClose");
+    const adminModalOverlay = document.getElementById("adminModalOverlay");
+
+    if (adminModalClose) adminModalClose.addEventListener("click", closeAdminModal);
+    if (adminModalOverlay) adminModalOverlay.addEventListener("click", closeAdminModal);
+
+    if (productForm) {
+        productForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const id = document.getElementById("adminProdId").value;
+            const title = document.getElementById("adminProdTitle").value.trim();
+            const type = document.getElementById("adminProdType").value;
+            const category = document.getElementById("adminProdCategory").value;
+            const price = parseInt(document.getElementById("adminProdPrice").value) || 0;
+            const content = document.getElementById("adminProdContent").value.trim();
+            const image = document.getElementById("adminProdImage").value.trim();
+            const desc = document.getElementById("adminProdDesc").value.trim();
+
+            const typeNames = { fascicule: "Fascicule", annale: "Annale", cours: "Cours PDF", formation: "Formation", pack: "Pack" };
+            const catNames = {
+                administration: "Administration & Justice",
+                securite: "Sécurité & Défense",
+                douane: "Douanes Sénégalaises",
+                sante: "Santé & Social",
+                "grandes-ecoles": "Grandes Écoles",
+                enseignement: "Enseignement (FASTEF)",
+                formation: "Informatique & Web"
+            };
+
+            if (id) {
+                // Update existing
+                const idx = PRODUCTS.findIndex(p => p.id == id);
+                if (idx > -1) {
+                    PRODUCTS[idx] = {
+                        ...PRODUCTS[idx],
+                        title, type, category, price, content, image, desc,
+                        typeName: typeNames[type] || type,
+                        catName: catNames[category] || category
+                    };
+                }
+            } else {
+                // Create new
+                const newProd = {
+                    id: Date.now(),
+                    type,
+                    category,
+                    icon: type === 'formation' ? '🎓' : (type === 'annale' ? '📜' : '📋'),
+                    bg: "bg-admin",
+                    catLabel: "cat-lbl-admin",
+                    catName: catNames[category] || category,
+                    title,
+                    desc,
+                    price,
+                    typeName: typeNames[type] || type,
+                    image: image || "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?q=80&w=600&auto=format&fit=crop",
+                    content
+                };
+                PRODUCTS.unshift(newProd);
+            }
+
+            saveProducts();
+            renderAdminProducts();
+            closeAdminModal();
+            showToast("💾", "Produit enregistré avec succès !");
         });
     }
 
