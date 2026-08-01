@@ -207,13 +207,24 @@ const btnLogout         = document.getElementById("btnLogout");
 const GATED_SECTIONS = [];
 
 // ==================
-//  LOADER
+//  LOADER OPTIMISÉ (CHARGEMENT ULTRA-RAPIDE < 100MS)
 // ==================
-window.addEventListener("load", () => {
-    setTimeout(() => {
-        loader.classList.add("fade-out");
-    }, 1500);
-});
+const dismissLoader = () => {
+    const loaderEl = document.getElementById("loader");
+    if (loaderEl && !loaderEl.classList.contains("fade-out")) {
+        loaderEl.classList.add("fade-out");
+        setTimeout(() => {
+            if (loaderEl) loaderEl.style.display = "none";
+        }, 200);
+    }
+};
+
+if (document.readyState === "interactive" || document.readyState === "complete") {
+    dismissLoader();
+} else {
+    document.addEventListener("DOMContentLoaded", dismissLoader);
+    window.addEventListener("load", dismissLoader);
+}
 
 // ==================
 //  SPA NAVIGATION
@@ -3797,8 +3808,6 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 });
 
-// Initial render
-setTimeout(() => {
-    renderAdminProducts();
-    renderStudentDashboard();
-}, 500);
+// Initial render (Immediate execution)
+if (typeof renderAdminProducts === 'function') renderAdminProducts();
+if (typeof renderStudentDashboard === 'function') renderStudentDashboard();
