@@ -41,6 +41,24 @@
             <p>Chargement de votre plateforme...</p>
         </div>
     </div>
+    <script>
+        (function() {
+            function removeLoader() {
+                var el = document.getElementById('loader');
+                if (el) {
+                    el.classList.add('fade-out');
+                    el.style.display = 'none';
+                }
+            }
+            if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                removeLoader();
+            } else {
+                document.addEventListener('DOMContentLoaded', removeLoader);
+                window.addEventListener('load', removeLoader);
+            }
+            setTimeout(removeLoader, 800);
+        })();
+    </script>
 
     <!-- AUTH MODAL -->
     <div class="auth-overlay" id="authOverlay"></div>

@@ -66,9 +66,10 @@ ul { list-style: none; }
     transition: opacity 0.2s ease, visibility 0.2s ease;
 }
 .loader.fade-out {
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    display: none !important;
 }
 
 /* --- SECURITY: Anti-Copy / No-Select --- */
