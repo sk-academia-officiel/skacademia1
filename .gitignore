@@ -3,5 +3,7 @@ node_modules/
 .DS_Store
 database.json.bak
 backend/database.json
+backend/*.sqlite
+backend/*.log
 dist/
 build/

@@ -165,3 +165,185 @@ body {
     margin-top: 1rem;
     margin-bottom: 1.5rem;
 }
+
+/* Modal Styles */
+.modal-backdrop {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.modal-backdrop.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.modal {
+    background: white;
+    width: 100%;
+    max-width: 400px;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: var(--shadow-lg);
+    transform: translateY(20px);
+    transition: transform 0.3s ease;
+}
+
+.modal-backdrop.active .modal {
+    transform: translateY(0);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.modal-header h3 {
+    color: var(--blue-deep);
+    font-size: 1.5rem;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #64748b;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 1rem;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--orange);
+}
+
+/* Cart Drawer */
+.cart-btn {
+    position: relative;
+    background: var(--orange);
+    color: white;
+    padding: 0.6rem 1rem;
+    border-radius: 8px;
+    border: none;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.cart-badge {
+    background: white;
+    color: var(--orange);
+    border-radius: 50%;
+    padding: 0.15rem 0.45rem;
+    font-size: 0.8rem;
+    font-weight: 800;
+}
+
+.cart-drawer-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 2100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.cart-drawer-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.cart-drawer {
+    position: fixed;
+    top: 0; right: -400px; width: 400px; max-width: 100%; height: 100%;
+    background: white;
+    box-shadow: var(--shadow-lg);
+    z-index: 2200;
+    display: flex;
+    flex-direction: column;
+    transition: right 0.3s ease;
+}
+
+.cart-drawer-overlay.active .cart-drawer {
+    right: 0;
+}
+
+.cart-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.cart-body {
+    flex: 1;
+    padding: 1.5rem;
+    overflow-y: auto;
+}
+
+.cart-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.cart-item-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--blue-deep);
+}
+
+.cart-item-price {
+    font-weight: 700;
+    color: var(--orange);
+}
+
+.cart-footer {
+    padding: 1.5rem;
+    border-top: 1px solid var(--border);
+    background: var(--bg-light);
+}
+
+.cart-total {
+    display: flex;
+    justify-content: space-between;
+    font-size: 1.2rem;
+    font-weight: 800;
+    margin-bottom: 1rem;
+    color: var(--blue-deep);
+}
