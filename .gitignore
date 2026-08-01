@@ -1,3 +1,7 @@
-SK-ACADEMIA-1/
-SK-ACADEMIA/
-database.json
+node_modules/
+.env
+.DS_Store
+database.json.bak
+backend/database.json
+dist/
+build/
