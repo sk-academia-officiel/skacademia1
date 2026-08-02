@@ -200,6 +200,103 @@ app.post('/api/auth/verify', async (req, res) => {
     }
 });
 
+// Chatbot Seny Route (API Claude Anthropic)
+app.post('/api/chat', async (req, res) => {
+    const { message, history = [] } = req.body;
+    if (!message) return res.status(400).json({ success: false, error: "Message requis" });
+
+    const FALLBACK_REPLY = "Désolé, je rencontre un souci technique. Vous pouvez me contacter directement sur WhatsApp au +221 76 574 93 43 ! 💬";
+
+    try {
+        // 1. Récupérer le catalogue pour le System Prompt
+        let products = [];
+        if (supabaseClient) {
+            const { data } = await supabaseClient.from('products').select('*');
+            if (data && data.length > 0) products = data;
+        } 
+        if (products.length === 0 && db) {
+            products = await db.all('SELECT * FROM products');
+        }
+        if (products.length === 0) {
+            const dbPath = path.join(__dirname, 'database.json');
+            if (fs.existsSync(dbPath)) {
+                products = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
+            }
+        }
+
+        // 2. Construire le System Prompt avec catalogue réel
+        const catalogContext = products.map(p => 
+            `- ${p.title} (Type: ${p.typeName || p.type || 'Fascicule'}, Catégorie: ${p.catName || p.category || 'Général'}) : ${p.price} FCFA. Description: ${p.desc || ''}`
+        ).join('\n');
+
+        const systemPrompt = `Tu es Seny, le conseiller virtuel commercial et académique officiel de SK ACADEMIA au Sénégal.
+
+MISSION :
+Aider chaleureusement et professionnellement les visiteurs à choisir la meilleure préparation aux concours sénégalais (ENA, Police, Gendarmerie, Douanes, FASTEF, Polytechnique, Santé / Sage-femme) ou formations en informatique.
+
+TON & STYLE :
+- Ton très chaleureux, bienveillant, professionnel et orienté conseil. Jamais insistant.
+- RÉPONSES COURTES : 3 à 4 phrases maximum par message !
+- Toujours terminer tes réponses par une question ou une action concrète pour faire avancer la conversation.
+
+RÈGLE D'OR ET CONSIGNES STRICTES :
+- Ne JAMAIS inventer de prix, de contenu de pack ou de dates de concours qui ne sont pas explicitement fournis dans le catalogue ci-dessous.
+- Si l'information n'est pas connue ou n'est pas dans le catalogue, réponds poliment que tu n'as pas la précision exacte et oriente immédiatement le visiteur vers le WhatsApp officiel (+221 76 574 93 43).
+
+CATALOGUE OFFICIEL EN TEMPS RÉEL SK ACADEMIA :
+${catalogContext}
+
+CONTACT OFFICIEL :
+WhatsApp / Téléphone : +221 76 574 93 43
+Email : contact@skacademia.sn
+Adresse : Dakar, Sénégal`;
+
+        // 3. Vérifier la clé API Anthropic
+        const apiKey = process.env.ANTHROPIC_API_KEY;
+        if (!apiKey) {
+            console.warn("[SENY] ANTHROPIC_API_KEY manquante dans .env. Renvoi du fallback WhatsApp.");
+            return res.json({ success: true, reply: FALLBACK_REPLY });
+        }
+
+        // 4. Préparer l'historique (limité aux 10 derniers messages)
+        const recentHistory = Array.isArray(history) ? history.slice(-10) : [];
+        const formattedMessages = recentHistory.map(m => ({
+            role: m.role === 'user' ? 'user' : 'assistant',
+            content: m.content || m.text || ''
+        }));
+        
+        // Ajouter le message actuel
+        formattedMessages.push({ role: 'user', content: message });
+
+        // 5. Appel de l'API Claude Anthropic
+        const anthropicRes = await axios.post('https://api.anthropic.com/v1/messages', {
+            model: 'claude-3-5-sonnet-20241022',
+            max_tokens: 350,
+            system: systemPrompt,
+            messages: formattedMessages
+        }, {
+            headers: {
+                'x-api-key': apiKey,
+                'anthropic-version': '2023-06-01',
+                'content-type': 'application/json'
+            },
+            timeout: 10000
+        });
+
+        if (anthropicRes.data && anthropicRes.data.content && anthropicRes.data.content[0]) {
+            const replyText = anthropicRes.data.content[0].text;
+            return res.json({ success: true, reply: replyText });
+        } else {
+            console.error("[SENY] Réponse inattendue de l'API Anthropic:", anthropicRes.data);
+            return res.json({ success: true, reply: FALLBACK_REPLY });
+        }
+
+    } catch (err) {
+        console.error("[SENY] Erreur API Claude / Chat:", err.response ? err.response.data : err.message);
+        return res.json({ success: true, reply: FALLBACK_REPLY });
+    }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server listening on port ${PORT}`);

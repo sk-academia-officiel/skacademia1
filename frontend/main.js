@@ -95,15 +95,41 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>
         </div>
+
+        <!-- Chatbot Seny Floating Widget -->
+        <button class="chat-widget-btn" id="senyChatBtn" title="Discuter avec Seny">🤖</button>
+        <div class="chat-widget-box" id="senyChatBox">
+            <div class="chat-box-header">
+                <div class="info">
+                    <div class="chat-avatar">🤖</div>
+                    <div>
+                        <h4>Seny</h4>
+                        <p>Conseiller SK ACADEMIA</p>
+                    </div>
+                </div>
+                <button class="close-btn" id="closeSenyChat" style="color: white;">&times;</button>
+            </div>
+            <div class="chat-box-messages" id="senyChatMessages">
+                <div class="chat-msg bot">
+                    Bonjour ! 👋 Je suis Seny, votre conseiller SK ACADEMIA. Quelle préparation aux concours ou quelle formation informatique recherchez-vous aujourd'hui ?
+                </div>
+            </div>
+            <div class="chat-typing-indicator" id="senyTyping">Seny est en train d'écrire...</div>
+            <form class="chat-box-input" id="senyChatForm">
+                <input type="text" id="senyInput" placeholder="Posez votre question à Seny..." autocomplete="off" required>
+                <button type="submit">➔</button>
+            </form>
+        </div>
     `;
 
     // Fetch and render products from backend
     fetchProducts();
     
-    // Check Auth & Supabase Status & Cart
+    // Check Auth & Supabase Status & Cart & Chatbot
     checkAuthState();
     checkSupabaseStatus();
     initCart();
+    initSenyChatbot();
 
     // Supabase Modal Logic
     const supabaseConfigBtn = document.getElementById('supabaseConfigBtn');
@@ -413,5 +439,89 @@ async function fetchProducts() {
     } catch (error) {
         console.error("Failed to load products:", error);
         grid.innerHTML = '<p style="color:red;">Erreur lors du chargement des produits.</p>';
+    }
+}
+
+// Seny Chatbot Logic
+function initSenyChatbot() {
+    const senyChatBtn = document.getElementById('senyChatBtn');
+    const senyChatBox = document.getElementById('senyChatBox');
+    const closeSenyChat = document.getElementById('closeSenyChat');
+    const senyChatForm = document.getElementById('senyChatForm');
+    const senyInput = document.getElementById('senyInput');
+    const senyChatMessages = document.getElementById('senyChatMessages');
+    const senyTyping = document.getElementById('senyTyping');
+
+    let chatHistory = [];
+    let messageCount = parseInt(sessionStorage.getItem('seny_msg_count') || '0', 10);
+    const MAX_SESSION_MESSAGES = 20;
+
+    senyChatBtn.addEventListener('click', () => {
+        senyChatBox.classList.toggle('active');
+        if (senyChatBox.classList.contains('active')) {
+            senyInput.focus();
+        }
+    });
+
+    closeSenyChat.addEventListener('click', () => {
+        senyChatBox.classList.remove('active');
+    });
+
+    senyChatForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const userText = senyInput.value.trim();
+        if (!userText) return;
+
+        // Check session rate limit
+        if (messageCount >= MAX_SESSION_MESSAGES) {
+            appendChatMsg('bot', "Vous avez atteint la limite de messages pour cette session. Pour continuer à discuter ou passer commande, contactez-nous directement sur WhatsApp au +221 76 574 93 43 ! 💬");
+            senyInput.value = '';
+            return;
+        }
+
+        // Render User Message
+        appendChatMsg('user', userText);
+        senyInput.value = '';
+        messageCount += 1;
+        sessionStorage.setItem('seny_msg_count', messageCount.toString());
+
+        // Show typing indicator
+        senyTyping.classList.add('active');
+        senyChatMessages.scrollTop = senyChatMessages.scrollHeight;
+
+        try {
+            const res = await fetch('http://localhost:3000/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: userText,
+                    history: chatHistory.slice(-10) // Send last 10 messages max
+                })
+            });
+
+            const data = await res.json();
+            senyTyping.classList.remove('active');
+
+            if (data.success && data.reply) {
+                appendChatMsg('bot', data.reply);
+                // Update conversation history
+                chatHistory.push({ role: 'user', content: userText });
+                chatHistory.push({ role: 'assistant', content: data.reply });
+            } else {
+                appendChatMsg('bot', "Désolé, je rencontre un souci technique. Contactez-nous directement sur WhatsApp au +221 76 574 93 43 ! 💬");
+            }
+        } catch (err) {
+            console.error("Seny Chat Error:", err);
+            senyTyping.classList.remove('active');
+            appendChatMsg('bot', "Désolé, je rencontre un souci de connexion. Vous pouvez me joindre directement sur WhatsApp au +221 76 574 93 43 ! 💬");
+        }
+    });
+
+    function appendChatMsg(sender, text) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `chat-msg ${sender}`;
+        msgDiv.innerText = text;
+        senyChatMessages.appendChild(msgDiv);
+        senyChatMessages.scrollTop = senyChatMessages.scrollHeight;
     }
 }
