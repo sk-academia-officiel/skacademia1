@@ -75,7 +75,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 </form>
             </div>
         </div>
-    `;
 
         <!-- Cart Drawer Overlay -->
         <div class="cart-drawer-overlay" id="cartOverlay">
