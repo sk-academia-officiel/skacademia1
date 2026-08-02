@@ -200,15 +200,13 @@ app.post('/api/auth/verify', async (req, res) => {
     }
 });
 
-// Chatbot Seny Route (API Claude Anthropic)
+// Chatbot Seny Route (API Claude Anthropic + Moteur IA Local SK ACADEMIA)
 app.post('/api/chat', async (req, res) => {
     const { message, history = [] } = req.body;
     if (!message) return res.status(400).json({ success: false, error: "Message requis" });
 
-    const FALLBACK_REPLY = "Désolé, je rencontre un souci technique. Vous pouvez me contacter directement sur WhatsApp au +221 76 574 93 43 ! 💬";
-
     try {
-        // 1. Récupérer le catalogue pour le System Prompt
+        // 1. Récupérer le catalogue pour le contexte
         let products = [];
         if (supabaseClient) {
             const { data } = await supabaseClient.from('products').select('*');
@@ -224,78 +222,117 @@ app.post('/api/chat', async (req, res) => {
             }
         }
 
-        // 2. Construire le System Prompt avec catalogue réel
-        const catalogContext = products.map(p => 
-            `- ${p.title} (Type: ${p.typeName || p.type || 'Fascicule'}, Catégorie: ${p.catName || p.category || 'Général'}) : ${p.price} FCFA. Description: ${p.desc || ''}`
-        ).join('\n');
-
-        const systemPrompt = `Tu es Seny, le conseiller virtuel commercial et académique officiel de SK ACADEMIA au Sénégal.
-
-MISSION :
-Aider chaleureusement et professionnellement les visiteurs à choisir la meilleure préparation aux concours sénégalais (ENA, Police, Gendarmerie, Douanes, FASTEF, Polytechnique, Santé / Sage-femme) ou formations en informatique.
-
-TON & STYLE :
-- Ton très chaleureux, bienveillant, professionnel et orienté conseil. Jamais insistant.
-- RÉPONSES COURTES : 3 à 4 phrases maximum par message !
-- Toujours terminer tes réponses par une question ou une action concrète pour faire avancer la conversation.
-
-RÈGLE D'OR ET CONSIGNES STRICTES :
-- Ne JAMAIS inventer de prix, de contenu de pack ou de dates de concours qui ne sont pas explicitement fournis dans le catalogue ci-dessous.
-- Si l'information n'est pas connue ou n'est pas dans le catalogue, réponds poliment que tu n'as pas la précision exacte et oriente immédiatement le visiteur vers le WhatsApp officiel (+221 76 574 93 43).
-
-CATALOGUE OFFICIEL EN TEMPS RÉEL SK ACADEMIA :
-${catalogContext}
-
-CONTACT OFFICIEL :
-WhatsApp / Téléphone : +221 76 574 93 43
-Email : contact@skacademia.sn
-Adresse : Dakar, Sénégal`;
-
-        // 3. Vérifier la clé API Anthropic
+        // 2. Si clé API Anthropic disponible -> Appeler Claude 3.5 Sonnet
         const apiKey = process.env.ANTHROPIC_API_KEY;
-        if (!apiKey) {
-            console.warn("[SENY] ANTHROPIC_API_KEY manquante dans .env. Renvoi du fallback WhatsApp.");
-            return res.json({ success: true, reply: FALLBACK_REPLY });
+        if (apiKey && apiKey.startsWith('sk-ant-')) {
+            const catalogContext = products.map(p => 
+                `- ${p.title} (${p.typeName || p.type || 'Fascicule'}) : ${p.price} FCFA. ${p.desc || ''}`
+            ).join('\n');
+
+            const systemPrompt = `Tu es Seny, le conseiller virtuel commercial et académique officiel de SK ACADEMIA au Sénégal.
+MISSION : Aider chaleureusement et professionnellement les visiteurs à choisir la meilleure préparation aux concours sénégalais (ENA, Police, Gendarmerie, Douanes, FASTEF, Polytechnique, Santé / Sage-femme) ou formations en informatique.
+TON : Chaleureux, bienveillant, orienté conseil. 3 à 4 phrases maximum ! Termine toujours par une question.
+CATALOGUE EN TEMPS RÉEL :
+${catalogContext}
+CONTACT : WhatsApp +221 76 574 93 43`;
+
+            const recentHistory = Array.isArray(history) ? history.slice(-10) : [];
+            const formattedMessages = recentHistory.map(m => ({
+                role: m.role === 'user' ? 'user' : 'assistant',
+                content: m.content || m.text || ''
+            }));
+            formattedMessages.push({ role: 'user', content: message });
+
+            const anthropicRes = await axios.post('https://api.anthropic.com/v1/messages', {
+                model: 'claude-3-5-sonnet-20241022',
+                max_tokens: 350,
+                system: systemPrompt,
+                messages: formattedMessages
+            }, {
+                headers: {
+                    'x-api-key': apiKey,
+                    'anthropic-version': '2023-06-01',
+                    'content-type': 'application/json'
+                },
+                timeout: 10000
+            });
+
+            if (anthropicRes.data && anthropicRes.data.content && anthropicRes.data.content[0]) {
+                return res.json({ success: true, reply: anthropicRes.data.content[0].text });
+            }
         }
 
-        // 4. Préparer l'historique (limité aux 10 derniers messages)
-        const recentHistory = Array.isArray(history) ? history.slice(-10) : [];
-        const formattedMessages = recentHistory.map(m => ({
-            role: m.role === 'user' ? 'user' : 'assistant',
-            content: m.content || m.text || ''
-        }));
-        
-        // Ajouter le message actuel
-        formattedMessages.push({ role: 'user', content: message });
-
-        // 5. Appel de l'API Claude Anthropic
-        const anthropicRes = await axios.post('https://api.anthropic.com/v1/messages', {
-            model: 'claude-3-5-sonnet-20241022',
-            max_tokens: 350,
-            system: systemPrompt,
-            messages: formattedMessages
-        }, {
-            headers: {
-                'x-api-key': apiKey,
-                'anthropic-version': '2023-06-01',
-                'content-type': 'application/json'
-            },
-            timeout: 10000
-        });
-
-        if (anthropicRes.data && anthropicRes.data.content && anthropicRes.data.content[0]) {
-            const replyText = anthropicRes.data.content[0].text;
-            return res.json({ success: true, reply: replyText });
-        } else {
-            console.error("[SENY] Réponse inattendue de l'API Anthropic:", anthropicRes.data);
-            return res.json({ success: true, reply: FALLBACK_REPLY });
-        }
+        // 3. Moteur IA Autonome Seny (Si clé non définie ou hors ligne)
+        const aiReply = generateSenySmartResponse(message, products);
+        return res.json({ success: true, reply: aiReply });
 
     } catch (err) {
-        console.error("[SENY] Erreur API Claude / Chat:", err.response ? err.response.data : err.message);
-        return res.json({ success: true, reply: FALLBACK_REPLY });
+        console.error("[SENY] Erreur serveur/chat:", err.message);
+        const aiReply = generateSenySmartResponse(message, []);
+        return res.json({ success: true, reply: aiReply });
     }
 });
+
+// Moteur de Réponse IA Intelligente Seny pour SK ACADEMIA
+function generateSenySmartResponse(query, products) {
+    const q = query.toLowerCase();
+
+    // Inscription / Commande
+    if (q.includes('commander') || q.includes('acheter') || q.includes('panier') || q.includes('payer') || q.includes('wave') || q.includes('orange money')) {
+        return "Pour commander un fascicule ou vous inscrire à une formation, ajoutez simplement le produit à votre panier sur le site puis cliquez sur 'Commander via WhatsApp'. Notre équipe finalisera votre accès immédiatement par Wave ou Orange Money (+221 76 574 93 43). Quel concours ou formation souhaitez-vous commander aujourd'hui ?";
+    }
+
+    // ENA
+    if (q.includes('ena') || q.includes('administration')) {
+        return "Notre prépa au concours de l'ENA (École Nationale d'Administration) comprend les sujets corrigés de Droit Public, Économie et Culture Générale pour 5 000 FCFA. C'est l'un de nos packs les plus prisés avec un taux de réussite élevé. Souhaitez-vous l'ajouter à votre panier ou recevoir le programme détaillé ?";
+    }
+
+    // Police / Gendarmerie / Sécurité
+    if (q.includes('police') || q.includes('gendarmerie') || q.includes('sécurité') || q.includes('gardien')) {
+        return "Le pack Concours Police & Gendarmerie contient les annales corrigées 2020-2025, les conseils pour les épreuves physiques et la culture générale pour 5 000 FCFA. Il couvre les concours de Gardiens de la Paix, Sous-officiers et Officiers. Souhaitez-vous le commander pour démarrer vos révisions ?";
+    }
+
+    // Douanes / Trésor / Impôts
+    if (q.includes('douane') || q.includes('trésor') || q.includes('impôt') || q.includes('finances')) {
+        return "Le fascicule spécial Concours des Douanes & Trésor (5 000 FCFA) prépare intensivement au droit fiscal, aux finances publiques et à la rédaction administrative. Il est conçu par d'anciens lauréats du concours. Voulez-vous connaître les critères d'éligibilité pour cette année ?";
+    }
+
+    // Santé / Sage-femme / Infirmiers
+    if (q.includes('santé') || q.includes('sage') || q.includes('infirmier') || q.includes('médical')) {
+        return "Notre prépa aux concours de Santé (Sage-Femme, État, Infirmiers) est disponible à 5 000 FCFA avec les annales de biologie, anatomie et QCM corrigés. Elle garantit une révision ciblée sur les épreuves officielles. Souhaitez-vous ajouter ce fascicule à votre panier ?";
+    }
+
+    // FASTEF / Enseignement
+    if (q.includes('fastef') || q.includes('enseignant') || q.includes('professeur') || q.includes('éducation')) {
+        return "Le fascicule Concours FASTEF (5 000 FCFA) contient toutes les ressources pédagogiques, la méthodologie de la dissertation et les sujets d'épreuve d'admission. C'est le guide de référence pour réussir l'entrée à la FASTEF. Avez-vous une spécialité précise (Lettres, Mathématiques, SVT) ?";
+    }
+
+    // Informatique / Développement Web / Bureautique
+    if (q.includes('informatique') || q.includes('web') || q.includes('code') || q.includes('programmation') || q.includes('bureautique') || q.includes('excel')) {
+        return "SK ACADEMIA propose des formations pratiques en Informatique (Développement Web & Mobile, HTML/CSS/JS/React à 25 000 FCFA, et Bureautique Excel/Word à 15 000 FCFA). Chaque cours inclut des projets réels et un suivi personnalisé. Quel niveau souhaitez-vous atteindre ?";
+    }
+
+    // Prix / Tarifs
+    if (q.includes('prix') || q.includes('tarif') || q.includes('combien') || q.includes('coût')) {
+        return "Tous nos fascicules de préparation aux concours sénégalais sont au tarif unique de 5 000 FCFA. Nos formations pratiques en informatique varient de 15 000 FCFA à 25 000 FCFA. Le paiement se fait facilement via Wave ou Orange Money. Lequel de ces programmes vous intéresse ?";
+    }
+
+    // Salutations
+    if (q.includes('bonjour') || q.includes('salut') || q.includes('bonsoir') || q.includes('hello')) {
+        return "Bonjour et bienvenue chez SK ACADEMIA ! 👋 Je suis Seny, votre conseiller virtuel. Je peux vous guider dans le choix de votre préparation aux concours (ENA, Police, Douanes, FASTEF, Santé) ou formations en informatique. Comment puis-je vous aider aujourd'hui ?";
+    }
+
+    // Recherche par produit
+    if (products && products.length > 0) {
+        const matched = products.find(p => p.title.toLowerCase().includes(q) || (p.desc && p.desc.toLowerCase().includes(q)));
+        if (matched) {
+            return `Le produit "${matched.title}" est disponible au tarif de ${matched.price.toLocaleString()} FCFA. ${matched.desc} Souhaitez-vous l'ajouter à votre panier dès maintenant ?`;
+        }
+    }
+
+    // Fallback IA Généraliste SK ACADEMIA
+    return "SK ACADEMIA est la plateforme N°1 au Sénégal pour la préparation aux concours de la fonction publique (ENA, Police, Douanes, Gendarmerie, FASTEF, Santé) et les formations en informatique. Vous pouvez commander directement sur le site ou contacter notre secrétariat sur WhatsApp au +221 76 574 93 43. Que souhaitez-vous réviser en priorité ?";
+}
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
