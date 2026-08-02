@@ -520,3 +520,537 @@ body {
     justify-content: center;
     font-size: 1rem;
 }
+
+/* ==========================================================================
+   ADMIN DASHBOARD SYSTEM (Style "Shopeers" Refonte #admin)
+   ========================================================================== */
+
+.admin-layout {
+    display: flex;
+    min-height: 100vh;
+    background-color: #F5F6FA;
+    font-family: var(--font-body);
+    color: #0f172a;
+}
+
+/* Sidebar */
+.admin-sidebar {
+    width: 260px;
+    background: #FFFFFF;
+    border-right: 1px solid #E2E8F0;
+    padding: 1.5rem 1.2rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 100;
+    overflow-y: auto;
+}
+
+.admin-sidebar-brand {
+    font-family: var(--font-heading);
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--blue-deep);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #F1F5F9;
+    margin-bottom: 1.5rem;
+}
+
+.admin-sidebar-brand span {
+    color: var(--orange);
+}
+
+.admin-menu-section {
+    margin-bottom: 1.5rem;
+}
+
+.admin-menu-section-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94A3B8;
+    margin-bottom: 0.6rem;
+    padding-left: 0.75rem;
+}
+
+.admin-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.7rem 0.9rem;
+    border-radius: 10px;
+    color: #64748B;
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    margin-bottom: 0.25rem;
+}
+
+.admin-menu-item i, .admin-menu-item svg {
+    width: 18px;
+    height: 18px;
+    stroke-width: 2.2;
+}
+
+.admin-menu-item:hover {
+    background: #F8FAFC;
+    color: var(--blue-deep);
+}
+
+.admin-menu-item.active {
+    background: rgba(15, 23, 42, 0.08);
+    color: var(--blue-deep);
+    font-weight: 700;
+}
+
+.admin-menu-item.active i, .admin-menu-item.active svg {
+    color: var(--blue-deep);
+    stroke: var(--blue-deep);
+}
+
+.admin-premium-card {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: white;
+    padding: 1.25rem;
+    border-radius: 16px;
+    margin-top: auto;
+    box-shadow: 0 10px 20px rgba(15, 23, 42, 0.15);
+}
+
+.admin-premium-card h5 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+}
+
+.admin-premium-card p {
+    font-size: 0.78rem;
+    color: #94A3B8;
+    line-height: 1.4;
+    margin-bottom: 0.8rem;
+}
+
+.admin-premium-card button {
+    width: 100%;
+    background: var(--orange);
+    color: white;
+    border: none;
+    padding: 0.55rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.82rem;
+    cursor: pointer;
+}
+
+/* Main Content Wrapper */
+.admin-main-wrapper {
+    flex: 1;
+    margin-left: 260px;
+    padding: 2rem 2.5rem;
+}
+
+/* Top Header */
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.admin-header-title h2 {
+    font-size: 1.65rem;
+    font-weight: 800;
+    color: var(--blue-deep);
+    margin: 0;
+}
+
+.admin-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.admin-select-period {
+    background: white;
+    border: 1px solid #E2E8F0;
+    padding: 0.6rem 1rem;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    outline: none;
+}
+
+.admin-btn-export {
+    background: var(--blue-deep);
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.admin-btn-export:hover {
+    opacity: 0.9;
+}
+
+.admin-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: var(--orange);
+    color: white;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+}
+
+/* 4-Stat Cards Row */
+.admin-stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+}
+
+.admin-stat-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.25rem 1.4rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+    border: 1px solid #F1F5F9;
+    position: relative;
+}
+
+.admin-stat-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.admin-stat-card-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #64748B;
+}
+
+.admin-stat-icon-box {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.admin-stat-icon-box.blue { background: #EFF6FF; color: #2563EB; }
+.admin-stat-icon-box.orange { background: #FFF7ED; color: #F97316; }
+.admin-stat-icon-box.green { background: #ECFDF5; color: #10B981; }
+.admin-stat-icon-box.purple { background: #F3E8FF; color: #9333EA; }
+
+.admin-stat-number {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--blue-deep);
+    margin-bottom: 0.4rem;
+}
+
+.admin-stat-footer {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.78rem;
+}
+
+.stat-badge-positive {
+    background: #ECFDF5;
+    color: #10B981;
+    font-weight: 700;
+    padding: 0.15rem 0.45rem;
+    border-radius: 12px;
+}
+
+.stat-badge-negative {
+    background: #FEF2F2;
+    color: #EF4444;
+    font-weight: 700;
+    padding: 0.15rem 0.45rem;
+    border-radius: 12px;
+}
+
+.stat-subtext {
+    color: #94A3B8;
+}
+
+/* 2/3 + 1/3 Main Grid */
+.admin-grid-two-cols {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.admin-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+    border: 1px solid #F1F5F9;
+}
+
+.admin-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.2rem;
+}
+
+.admin-card-header h3 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--blue-deep);
+    margin: 0;
+}
+
+.admin-revenue-amount {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: var(--blue-deep);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+/* Category Breakdown Bars */
+.admin-category-breakdown {
+    margin-top: 1.5rem;
+    padding-top: 1.2rem;
+    border-top: 1px solid #F1F5F9;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+.admin-cat-item {
+    font-size: 0.82rem;
+}
+
+.admin-cat-label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.3rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+.admin-cat-progress-bg {
+    height: 7px;
+    border-radius: 4px;
+    background: #F1F5F9;
+    overflow: hidden;
+}
+
+.admin-cat-progress-fill {
+    height: 100%;
+    border-radius: 4px;
+}
+
+/* Secondary Right Widgets */
+.admin-widgets-column {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* Days Active Mini Bar Chart */
+.admin-days-bar-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    height: 100px;
+    padding-top: 1rem;
+}
+
+.admin-day-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    flex: 1;
+}
+
+.admin-day-bar-bg {
+    width: 16px;
+    height: 70px;
+    background: #F1F5F9;
+    border-radius: 8px;
+    display: flex;
+    align-items: flex-end;
+    overflow: hidden;
+}
+
+.admin-day-bar-fill {
+    width: 100%;
+    background: #CBD5E1;
+    border-radius: 8px;
+    transition: height 0.3s;
+}
+
+.admin-day-col.active .admin-day-bar-fill {
+    background: var(--blue-deep);
+}
+
+.admin-day-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #94A3B8;
+}
+
+.admin-day-col.active .admin-day-label {
+    color: var(--blue-deep);
+    font-weight: 700;
+}
+
+/* Repeat Gauge SVG */
+.admin-gauge-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: 0.5rem 0;
+}
+
+.admin-gauge-text {
+    position: absolute;
+    top: 55%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+.admin-gauge-text .val {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--blue-deep);
+}
+
+.admin-gauge-text .sub {
+    font-size: 0.72rem;
+    color: #94A3B8;
+}
+
+/* Table Card */
+.admin-table-responsive {
+    overflow-x: auto;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+}
+
+.admin-table th {
+    text-align: left;
+    padding: 0.9rem 1rem;
+    background: #F8FAFC;
+    color: #64748B;
+    font-weight: 700;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    border-bottom: 1px solid #E2E8F0;
+}
+
+.admin-table td {
+    padding: 1rem;
+    border-bottom: 1px solid #F1F5F9;
+    color: #334155;
+    vertical-align: middle;
+}
+
+.admin-table tr:last-child td {
+    border-bottom: none;
+}
+
+.admin-table tr:hover td {
+    background: #F8FAFC;
+}
+
+.admin-prod-title-box {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.admin-prod-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: #F1F5F9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+}
+
+.admin-rating-stars {
+    color: #F59E0B;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: 0.85rem;
+}
+
+/* Responsive Media Queries */
+@media (max-width: 1100px) {
+    .admin-stats-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .admin-grid-two-cols {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .admin-sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+    }
+    .admin-sidebar.open {
+        transform: translateX(0);
+    }
+    .admin-main-wrapper {
+        margin-left: 0;
+        padding: 1.5rem 1rem;
+    }
+    .admin-stats-row {
+        grid-template-columns: 1fr;
+    }
+    .admin-category-breakdown {
+        grid-template-columns: 1fr;
+    }
+}

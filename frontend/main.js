@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="nav-links">
                 <a href="#catalogue">Catalogue</a>
                 <a href="#dashboard">Espace Étudiant</a>
+                <a href="#admin" id="adminNavLink">Admin</a>
                 <button class="cart-btn" id="openCartBtn">🛒 Panier <span class="cart-badge" id="cartCount">0</span></button>
                 <button class="btn btn-accent" id="supabaseConfigBtn" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">⚡ Supabase</button>
                 <button class="btn btn-primary" id="loginBtn">Connexion</button>
@@ -517,11 +518,416 @@ function initSenyChatbot() {
         }
     });
 
-    function appendChatMsg(sender, text) {
-        const msgDiv = document.createElement('div');
-        msgDiv.className = `chat-msg ${sender}`;
-        msgDiv.innerText = text;
-        senyChatMessages.appendChild(msgDiv);
-        senyChatMessages.scrollTop = senyChatMessages.scrollHeight;
+// Handle Hash Routing (#admin)
+function handleRouting() {
+    if (window.location.hash === '#admin') {
+        renderAdminDashboard();
     }
+}
+
+window.addEventListener('hashchange', handleRouting);
+handleRouting();
+
+// Render Shopeers Admin Dashboard
+function renderAdminDashboard() {
+    const app = document.getElementById('app');
+    
+    app.innerHTML = `
+        <div class="admin-layout">
+            <!-- Sidebar -->
+            <aside class="admin-sidebar">
+                <div>
+                    <div class="admin-sidebar-brand">
+                        SK<span>ACADEMIA</span>
+                    </div>
+                    <div class="admin-menu-section">
+                        <div class="admin-menu-section-title">Menu Principal</div>
+                        <a href="#admin" class="admin-menu-item active">
+                            <i data-lucide="layout-dashboard"></i>
+                            <span>Dashboard</span>
+                        </a>
+                        <a href="#admin-commandes" class="admin-menu-item">
+                            <i data-lucide="shopping-bag"></i>
+                            <span>Commandes</span>
+                        </a>
+                        <a href="#admin-produits" class="admin-menu-item">
+                            <i data-lucide="package"></i>
+                            <span>Produits</span>
+                        </a>
+                        <a href="#admin-clients" class="admin-menu-item">
+                            <i data-lucide="users"></i>
+                            <span>Clients</span>
+                        </a>
+                        <a href="#admin-contenu" class="admin-menu-item">
+                            <i data-lucide="file-text"></i>
+                            <span>Contenu & Fascicules</span>
+                        </a>
+                        <a href="#accueil" class="admin-menu-item">
+                            <i data-lucide="globe"></i>
+                            <span>Boutique en ligne</span>
+                        </a>
+                    </div>
+
+                    <div class="admin-menu-section">
+                        <div class="admin-menu-section-title">Analyse & Finances</div>
+                        <a href="#admin-finances" class="admin-menu-item">
+                            <i data-lucide="credit-card"></i>
+                            <span>Finances</span>
+                        </a>
+                        <a href="#admin-analytiques" class="admin-menu-item">
+                            <i data-lucide="bar-chart-3"></i>
+                            <span>Analytiques</span>
+                        </a>
+                        <a href="#admin-promotions" class="admin-menu-item">
+                            <i data-lucide="tag"></i>
+                            <span>Réductions & Promos</span>
+                        </a>
+                    </div>
+
+                    <div class="admin-menu-section">
+                        <div class="admin-menu-section-title">Système</div>
+                        <a href="#admin-parametres" class="admin-menu-item">
+                            <i data-lucide="settings"></i>
+                            <span>Paramètres</span>
+                        </a>
+                        <a href="#admin-aide" class="admin-menu-item">
+                            <i data-lucide="help-circle"></i>
+                            <span>Aide & Support</span>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="admin-premium-card">
+                    <h5>Support WhatsApp 💬</h5>
+                    <p>Accès direct à l'assistance officielle SK ACADEMIA 24/7.</p>
+                    <button onclick="window.open('https://wa.me/221765749343', '_blank')">Contacter Support</button>
+                </div>
+            </aside>
+
+            <!-- Main Content Area -->
+            <main class="admin-main-wrapper">
+                <!-- Header -->
+                <header class="admin-header">
+                    <div class="admin-header-title">
+                        <h2>Tableau de bord</h2>
+                    </div>
+                    <div class="admin-header-actions">
+                        <select class="admin-select-period">
+                            <option value="30">30 derniers jours</option>
+                            <option value="7">7 derniers jours</option>
+                            <option value="90">Ce trimestre</option>
+                        </select>
+                        <button class="admin-btn-export" id="adminExportBtn">
+                            <i data-lucide="download"></i> Exporter CSV
+                        </button>
+                        <div style="width: 38px; height: 38px; border-radius: 50%; background: white; border: 1px solid #E2E8F0; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                            <i data-lucide="bell" style="width: 18px; color: #64748B;"></i>
+                        </div>
+                        <div class="admin-avatar">SK</div>
+                    </div>
+                </header>
+
+                <!-- 4 Stat Cards Row -->
+                <div class="admin-stats-row">
+                    <div class="admin-stat-card">
+                        <div class="admin-stat-card-header">
+                            <span class="admin-stat-card-title">Visiteurs</span>
+                            <div class="admin-stat-icon-box blue">
+                                <i data-lucide="eye"></i>
+                            </div>
+                        </div>
+                        <div class="admin-stat-number">6 225</div>
+                        <div class="admin-stat-footer">
+                            <span class="stat-badge-positive">↑ 8.4%</span>
+                            <span class="stat-subtext">vs période précédente</span>
+                        </div>
+                    </div>
+
+                    <div class="admin-stat-card">
+                        <div class="admin-stat-card-header">
+                            <span class="admin-stat-card-title">Nouvelles Inscriptions</span>
+                            <div class="admin-stat-icon-box orange">
+                                <i data-lucide="user-plus"></i>
+                            </div>
+                        </div>
+                        <div class="admin-stat-number">1 224</div>
+                        <div class="admin-stat-footer">
+                            <span class="stat-badge-positive">↑ 12.5%</span>
+                            <span class="stat-subtext">vs période précédente</span>
+                        </div>
+                    </div>
+
+                    <div class="admin-stat-card">
+                        <div class="admin-stat-card-header">
+                            <span class="admin-stat-card-title">Commandes</span>
+                            <div class="admin-stat-icon-box green">
+                                <i data-lucide="shopping-cart"></i>
+                            </div>
+                        </div>
+                        <div class="admin-stat-number">342</div>
+                        <div class="admin-stat-footer">
+                            <span class="stat-badge-positive">↑ 5.2%</span>
+                            <span class="stat-subtext">vs période précédente</span>
+                        </div>
+                    </div>
+
+                    <div class="admin-stat-card">
+                        <div class="admin-stat-card-header">
+                            <span class="admin-stat-card-title">Taux de Conversion</span>
+                            <div class="admin-stat-icon-box purple">
+                                <i data-lucide="trending-up"></i>
+                            </div>
+                        </div>
+                        <div class="admin-stat-number">5.4%</div>
+                        <div class="admin-stat-footer">
+                            <span class="stat-badge-negative">↓ 1.2%</span>
+                            <span class="stat-subtext">vs période précédente</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2/3 + 1/3 Main Grid -->
+                <div class="admin-grid-two-cols">
+                    <!-- Left 2/3 Revenue Chart -->
+                    <div class="admin-card">
+                        <div class="admin-card-header">
+                            <h3>Chiffre d'Affaires</h3>
+                            <select class="admin-select-period" style="font-size: 0.78rem; padding: 0.35rem 0.75rem;">
+                                <option>7 derniers jours</option>
+                                <option selected>30 derniers jours</option>
+                                <option>Tout l'historique</option>
+                            </select>
+                        </div>
+                        <div class="admin-revenue-amount">
+                            446 700 FCFA
+                            <span class="stat-badge-positive" style="font-size: 0.85rem; font-weight: 700;">↑ 15.4% vs mois dernier</span>
+                        </div>
+                        <!-- Chart Canvas -->
+                        <div style="height: 220px; width: 100%; position: relative;">
+                            <canvas id="revenueChartCanvas"></canvas>
+                        </div>
+
+                        <!-- Category Breakdown Bars -->
+                        <div class="admin-category-breakdown">
+                            <div class="admin-cat-item">
+                                <div class="admin-cat-label">
+                                    <span>Administration & Justice</span>
+                                    <strong>45%</strong>
+                                </div>
+                                <div class="admin-cat-progress-bg">
+                                    <div class="admin-cat-progress-fill" style="width: 45%; background: var(--blue-deep);"></div>
+                                </div>
+                            </div>
+                            <div class="admin-cat-item">
+                                <div class="admin-cat-label">
+                                    <span>Sécurité & Défense</span>
+                                    <strong>28%</strong>
+                                </div>
+                                <div class="admin-cat-progress-bg">
+                                    <div class="admin-cat-progress-fill" style="width: 28%; background: var(--orange);"></div>
+                                </div>
+                            </div>
+                            <div class="admin-cat-item">
+                                <div class="admin-cat-label">
+                                    <span>Douanes & Santé</span>
+                                    <strong>18%</strong>
+                                </div>
+                                <div class="admin-cat-progress-bg">
+                                    <div class="admin-cat-progress-fill" style="width: 18%; background: #10B981;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right 1/3 Secondary Widgets -->
+                    <div class="admin-widgets-column">
+                        <!-- Widget 1: Activité par jour -->
+                        <div class="admin-card">
+                            <div class="admin-card-header">
+                                <h3>Activité par Jour</h3>
+                                <i data-lucide="more-horizontal" style="width: 18px; color: #94A3B8;"></i>
+                            </div>
+                            <div class="admin-days-bar-container">
+                                <div class="admin-day-col"><div class="admin-day-bar-bg"><div class="admin-day-bar-fill" style="height: 40%;"></div></div><span class="admin-day-label">Lun</span></div>
+                                <div class="admin-day-col"><div class="admin-day-bar-bg"><div class="admin-day-bar-fill" style="height: 65%;"></div></div><span class="admin-day-label">Mar</span></div>
+                                <div class="admin-day-col active"><div class="admin-day-bar-bg"><div class="admin-day-bar-fill" style="height: 95%;"></div></div><span class="admin-day-label">Mer</span></div>
+                                <div class="admin-day-col"><div class="admin-day-bar-bg"><div class="admin-day-bar-fill" style="height: 55%;"></div></div><span class="admin-day-label">Jeu</span></div>
+                                <div class="admin-day-col"><div class="admin-day-bar-bg"><div class="admin-day-bar-fill" style="height: 80%;"></div></div><span class="admin-day-label">Ven</span></div>
+                                <div class="admin-day-col"><div class="admin-day-bar-bg"><div class="admin-day-bar-fill" style="height: 45%;"></div></div><span class="admin-day-label">Sam</span></div>
+                                <div class="admin-day-col"><div class="admin-day-bar-bg"><div class="admin-day-bar-fill" style="height: 30%;"></div></div><span class="admin-day-label">Dim</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Widget 2: Taux de réachat -->
+                        <div class="admin-card">
+                            <div class="admin-card-header">
+                                <h3>Taux de Réachat</h3>
+                                <i data-lucide="repeat" style="width: 18px; color: #94A3B8;"></i>
+                            </div>
+                            <div class="admin-gauge-box">
+                                <svg width="180" height="100" viewBox="0 0 180 100">
+                                    <path d="M 20 90 A 70 70 0 0 1 160 90" fill="none" stroke="#F1F5F9" stroke-width="16" stroke-linecap="round"/>
+                                    <path d="M 20 90 A 70 70 0 0 1 142 42" fill="none" stroke="#10B981" stroke-width="16" stroke-linecap="round"/>
+                                </svg>
+                                <div class="admin-gauge-text">
+                                    <div class="val">68%</div>
+                                    <div class="sub">Fidélité étudiants</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Widget 3: Assistant Seny -->
+                        <div class="admin-card" style="background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);">
+                            <div class="admin-card-header">
+                                <div style="display: flex; align-items: center; gap: 0.6rem;">
+                                    <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--orange); color: white; display: flex; align-items: center; justify-content: center; font-size: 1rem;">🤖</div>
+                                    <h3 style="font-size: 0.95rem;">Assistant Seny</h3>
+                                </div>
+                                <span class="stat-badge-positive" style="font-size: 0.72rem;">Actif</span>
+                            </div>
+                            <div style="font-size: 0.85rem; color: #475569; margin-bottom: 0.8rem;">
+                                <strong>148 conversations</strong> traitées cette semaine.
+                            </div>
+                            <div style="font-size: 0.78rem; color: #64748b;">
+                                Question fréquente : <em>"Quel est le prix du pack ENA ?"</em>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Full Width Table: Produits Vedettes -->
+                <div class="admin-card">
+                    <div class="admin-card-header">
+                        <h3>Produits Vedettes (Best Selling Products)</h3>
+                        <a href="#admin-produits" style="font-size: 0.82rem; font-weight: 700; color: var(--blue-deep); text-decoration: none;">Voir tout →</a>
+                    </div>
+                    <div class="admin-table-responsive">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Produit</th>
+                                    <th>Catégorie</th>
+                                    <th>Ventes</th>
+                                    <th>Chiffre d'affaires</th>
+                                    <th>Note</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>#83001</strong></td>
+                                    <td>
+                                        <div class="admin-prod-title-box">
+                                            <div class="admin-prod-icon">📜</div>
+                                            <div>
+                                                <strong style="display: block; color: var(--blue-deep);">Fascicule Complet — Concours ENA Sénégal</strong>
+                                                <span style="font-size: 0.78rem; color: #94A3B8;">Droit Public & Culture Générale</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>Administration</td>
+                                    <td><strong>2 310</strong> vendus</td>
+                                    <td style="font-weight: 700; color: #10B981;">11 550 000 FCFA</td>
+                                    <td><div class="admin-rating-stars">★ 5.0</div></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>#83002</strong></td>
+                                    <td>
+                                        <div class="admin-prod-title-box">
+                                            <div class="admin-prod-icon">👮</div>
+                                            <div>
+                                                <strong style="display: block; color: var(--blue-deep);">Pack Spécial — Concours Police & Gendarmerie</strong>
+                                                <span style="font-size: 0.78rem; color: #94A3B8;">Annales Corrigées 2020-2025</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>Sécurité</td>
+                                    <td><strong>1 230</strong> vendus</td>
+                                    <td style="font-weight: 700; color: #10B981;">6 150 000 FCFA</td>
+                                    <td><div class="admin-rating-stars">★ 4.8</div></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>#83003</strong></td>
+                                    <td>
+                                        <div class="admin-prod-title-box">
+                                            <div class="admin-prod-icon">💻</div>
+                                            <div>
+                                                <strong style="display: block; color: var(--blue-deep);">Formation Complète — Développement Web & Mobile</strong>
+                                                <span style="font-size: 0.78rem; color: #94A3B8;">HTML, CSS, JavaScript, React</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>Informatique</td>
+                                    <td><strong>812</strong> vendus</td>
+                                    <td style="font-weight: 700; color: #10B981;">12 180 000 FCFA</td>
+                                    <td><div class="admin-rating-stars">★ 4.9</div></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </main>
+        </div>
+    `;
+
+    // Render Lucide Icons
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
+
+    // CSV Export Listener
+    const exportBtn = document.getElementById('adminExportBtn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', () => {
+            const csvContent = "data:text/csv;charset=utf-8,ID,Produit,Categorie,Ventes,CA\n83001,Fascicule ENA,Administration,2310,11550000\n83002,Pack Police,Securite,1230,6150000\n83003,Formation Dev Web,Informatique,812,12180000";
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "sk_academia_rapport_ventes.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+    }
+
+    // Render Revenue Evolution Chart (Chart.js)
+    setTimeout(() => {
+        const canvas = document.getElementById('revenueChartCanvas');
+        if (canvas && window.Chart) {
+            const ctx = canvas.getContext('2d');
+            new window.Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['1 Jan', '5 Jan', '10 Jan', '15 Jan', '20 Jan', '25 Jan', '30 Jan'],
+                    datasets: [{
+                        label: "Chiffre d'Affaires (FCFA)",
+                        data: [120000, 190000, 240000, 310000, 280000, 390000, 446700],
+                        borderColor: '#0f172a',
+                        borderWidth: 3,
+                        backgroundColor: 'rgba(15, 23, 42, 0.05)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#f5a623'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { 
+                            grid: { color: '#F1F5F9' },
+                            ticks: {
+                                callback: function(value) { return value.toLocaleString() + ' F'; }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }, 100);
 }
