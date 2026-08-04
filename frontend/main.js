@@ -1,1243 +1,696 @@
-// SK ACADEMIA - Frontend Entry Point
-document.addEventListener('DOMContentLoaded', () => {
-    const app = document.getElementById('app');
+// SK ACADEMIA - Application Frontend (Lovable Inspired Modern Version)
 
-    // Top Bar + Navbar V2 + Hero + Categories + Featured Products + Footer V2
-    app.innerHTML = `
-        <!-- Top Bar -->
-        <div class="site-top-bar">
-            <div>Digital Products & Exam Preparation in Senegal</div>
-            <div class="top-bar-socials">
-                <a href="#" title="Facebook">📘</a>
-                <a href="#" title="Instagram">📷</a>
-                <a href="#" title="YouTube">📺</a>
-            </div>
-        </div>
+// ==========================================
+// 1. Data Store (27 Supports de Concours & Formations)
+// ==========================================
+const PRODUCTS_DATA = [
+    // Administration & Justice
+    { id: 1, title: "Fascicule ENA Sénégal - Culture Générale & Droit Public", sector: "Administration & Justice", type: "Fascicules & Packs", price: 7500, description: "Synthèse complète de culture générale, droit constitutionnel et administratif pour le concours de l'ENA.", icon: "📜" },
+    { id: 2, title: "Annales Corrigées ENA (2018 - 2025)", sector: "Administration & Justice", type: "Annales corrigées", price: 5000, description: "Sujets et corrigés détaillés des épreuves d'admissibilité et d'admission du concours direct ENA.", icon: "📚" },
+    { id: 3, title: "Pack Concours Greffiers & Secrétaires de Greffe", sector: "Administration & Justice", type: "Fascicules & Packs", price: 6500, description: "Cours d'organisation judiciaire au Sénégal, droit pénal et procédure avec annales récentes.", icon: "⚖️" },
+    { id: 4, title: "Cours PDF Droit Administratif & Institutions du Sénégal", sector: "Administration & Justice", type: "Cours PDF", price: 4000, description: "Guide méthodologique complet pour la dissertation et le commentaire de texte aux concours administratifs.", icon: "📄" },
 
-        <!-- Navbar V2 -->
-        <nav class="site-navbar-v2">
-            <a href="/" class="brand-v2">
-                <div class="brand-v2-icon">📖</div>
-                <div>SK <span>ACADEMIA</span></div>
-            </a>
-            <div class="nav-links-v2">
-                <a href="#" class="active">ACCUEIL</a>
-                <a href="#catalogue">BOUTIQUE</a>
-                <a href="#catalogue">PRÉPARATION CONCOURS</a>
-                <a href="#catalogue">FORMATIONS INFORMATIQUE</a>
-                <a href="#propos">À PROPOS</a>
-                <a href="#contact">CONTACT</a>
-                <button class="cart-btn" id="openCartBtn" style="padding: 0.4rem 0.9rem; font-size: 0.82rem;">🛒 Panier <span class="cart-badge" id="cartCount">0</span></button>
-                <button class="btn btn-accent" id="supabaseConfigBtn" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;">⚡ Supabase</button>
-                <button class="btn btn-primary" id="loginBtn" style="font-size: 0.8rem; padding: 0.4rem 0.9rem;">Connexion</button>
-            </div>
-        </nav>
+    // Sécurité & Défense
+    { id: 5, title: "Fascicule Concours Police Nationale - Gardiens de la Paix", sector: "Sécurité & Défense", type: "Fascicules & Packs", price: 5000, description: "Culture générale, dictée, entraînement aux tests psychotechniques et épreuves physiques.", icon: "👮" },
+    { id: 6, title: "Annales Corrigées Officiers & Commissaires de Police", sector: "Sécurité & Défense", type: "Annales corrigées", price: 6000, description: "Sujets corrigés de droit pénal, procédure pénale et culture générale (Session 2019-2025).", icon: "📑" },
+    { id: 7, title: "Pack Concours Gendarmerie Nationale Sénégal", sector: "Sécurité & Défense", type: "Fascicules & Packs", price: 5500, description: "Preparation intégrale pour les Élèves Gendarmes et Sous-Officiers de Gendarmerie.", icon: "🛡️" },
+    { id: 8, title: "Guide de Préparation Physique & Mentale aux Concours Militaires", sector: "Sécurité & Défense", type: "Cours PDF", price: 3500, description: "Programme d'entraînement, baremes des épreuves sportives et conseils médicaux.", icon: "🏋️" },
 
-        <!-- Hero Section Asymmetric -->
-        <section class="hero-asymmetric">
-            <div class="hero-pattern-bg"></div>
-            <div class="hero-text-content">
-                <h1>SK ACADEMY : VOTRE CLÉ POUR RÉUSSIR LES CONCOURS AU SÉNÉGAL</h1>
-                <p>Fascicules numériques, cours vidéo, et formations en informatique de qualité pour exceller.</p>
-                <button class="btn-hero-cta" onclick="document.getElementById('catalogue-section').scrollIntoView({behavior:'smooth'})">DÉCOUVRIR NOS PRODUITS</button>
-            </div>
-            <div class="hero-image-wrapper">
-                <img src="./hero_students.png" alt="Étudiants SK ACADEMIA Sénégal" class="hero-image-frame">
-            </div>
-        </section>
+    // Douanes Sénégalaises
+    { id: 9, title: "Fascicule Concours Douanes - Agents de Constatation", sector: "Douanes Sénégalaises", type: "Fascicules & Packs", price: 6000, description: "Droit douanier, réglementation de l'UEMOA, culture générale et épreuves de calcul rapide.", icon: "📦" },
+    { id: 10, title: "Annales Corrigées Inspecteurs & Contrôleurs des Douanes", sector: "Douanes Sénégalaises", type: "Annales corrigées", price: 7000, description: "Collection exclusive des sujets d'économie générale, de finances publiques et d'épreuves de synthèse.", icon: "📊" },
+    { id: 11, title: "Cours PDF Économie Internationale & Tarif Douanier", sector: "Douanes Sénégalaises", type: "Cours PDF", price: 4500, description: "Résumé clair des politiques commerciales, procédures de dédouanement et contentieux.", icon: "📉" },
 
-        <!-- Section 1: NOS CATÉGORIES DE PRODUITS -->
-        <section class="section-categories">
-            <h2 class="section-title-v2">NOS CATÉGORIES DE PRODUITS</h2>
-            <div class="categories-grid-v2">
-                <!-- Card 1: PRÉPARATION CONCOURS -->
-                <div class="category-card-v2" onclick="window.filterByCategory('Concours')" style="cursor: pointer;">
-                    <div class="category-icon-box">
-                        <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
-                            <path d="M40 10 L45 25 L60 25 L48 35 L52 50 L40 40 L28 50 L32 35 L20 25 L35 25 Z" stroke="#F5A623" stroke-width="2.5" fill="#FFF7ED"/>
-                            <rect x="24" y="38" width="32" height="30" rx="4" stroke="#0F2C59" stroke-width="2.5" fill="white"/>
-                            <line x1="30" y1="46" x2="50" y2="46" stroke="#0F2C59" stroke-width="2"/>
-                            <line x1="30" y1="52" x2="46" y2="52" stroke="#0F2C59" stroke-width="2"/>
-                            <line x1="30" y1="58" x2="42" y2="58" stroke="#0F2C59" stroke-width="2"/>
-                        </svg>
-                    </div>
-                    <h3>PRÉPARATION CONCOURS (SÉNÉGAL)</h3>
-                    <div class="category-list-items">
-                        <div>Concours ENA</div>
-                        <div>Concours Gendarmerie / Police</div>
-                        <div>Concours Santé & Douanes</div>
-                    </div>
-                </div>
+    // Santé & Social
+    { id: 12, title: "Fascicule Concours Infirmiers d'État & Sages-Femmes (ENDSS)", sector: "Santé & Social", type: "Fascicules & Packs", price: 5000, description: "Sciences de la vie et de la terre, anatomie, biologie humaine et qcm de culture sanitaire.", icon: "🩺" },
+    { id: 13, title: "Annales Corrigées Concours Assistants Sociaux & Techniciens de Santé", sector: "Santé & Social", type: "Annales corrigées", price: 4500, description: "Questions à choix multiples et cas pratiques récents des épreuves d'entrée de l'ENDSS.", icon: "💉" },
+    { id: 14, title: "Cours PDF Pharmacologie & Pathologies Courantes au Sénégal", sector: "Santé & Social", type: "Cours PDF", price: 4000, description: "Répertoire complet des connaissances fondamentales pour réussir les concours de santé.", icon: "💊" },
 
-                <!-- Card 2: FORMATIONS INFORMATIQUE -->
-                <div class="category-card-v2" onclick="window.filterByCategory('Informatique')" style="cursor: pointer;">
-                    <div class="category-icon-box">
-                        <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
-                            <rect x="15" y="22" width="50" height="32" rx="4" stroke="#0F2C59" stroke-width="2.5" fill="white"/>
-                            <line x1="10" y1="54" x2="70" y2="54" stroke="#0F2C59" stroke-width="3" stroke-linecap="round"/>
-                            <path d="M28 38 L22 34 L28 30" stroke="#F5A623" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path d="M52 38 L58 34 L52 30" stroke="#F5A623" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                            <line x1="43" y1="28" x2="37" y2="40" stroke="#0F2C59" stroke-width="2"/>
-                            <path d="M30 16 L40 10 L50 16 L40 20 Z" fill="#0F2C59"/>
-                        </svg>
-                    </div>
-                    <h3>FORMATIONS INFORMATIQUE</h3>
-                    <div class="category-list-items">
-                        <div>Bureautique (Word, Excel)</div>
-                        <div>Programmation & Code</div>
-                        <div>Web Design & React</div>
-                    </div>
-                </div>
+    // Grandes Écoles
+    { id: 15, title: "Pack Prépa Concours EAMAC (Météo, Aviation, Contrôle)", sector: "Grandes Écoles", type: "Fascicules & Packs", price: 8000, description: "Mathématiques approfondies, physique-chimie, anglais technique et logique spatiale.", icon: "✈️" },
+    { id: 16, title: "Annales Corrigées ESP Dakar (École Supérieure Polytechnique)", sector: "Grandes Écoles", type: "Annales corrigées", price: 6500, description: "Corrigés officiels des concours d'entrée au DUT et Diplôme d'Ingénieur de l'ESP.", icon: "⚙️" },
+    { id: 17, title: "Fascicule Concours ENSAE (Statistique & Analyse Économique)", sector: "Grandes Écoles", type: "Fascicules & Packs", price: 7500, description: "Entraînement intensif en probabilités, algebree linéaire et épreuves de réflexion analytique.", icon: "📐" },
+    { id: 18, title: "Pack Concours INSEPS (Éducation Physique & Sportive)", sector: "Grandes Écoles", type: "Fascicules & Packs", price: 5000, description: "Biomécanique, physiologie du sport et sujets d'admissibilité des sessions précédentes.", icon: "⚽" },
 
-                <!-- Card 3: FASCICULES DIGITAUX & RESSOURCES -->
-                <div class="category-card-v2" onclick="window.filterByCategory('Fascicule')" style="cursor: pointer;">
-                    <div class="category-icon-box">
-                        <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
-                            <rect x="22" y="16" width="36" height="48" rx="5" stroke="#0F2C59" stroke-width="2.5" fill="white"/>
-                            <path d="M46 16 L58 28 L46 28 Z" fill="#E2E8F0" stroke="#0F2C59" stroke-width="2"/>
-                            <circle cx="54" cy="52" r="12" fill="#0F2C59"/>
-                            <path d="M54 46 L54 56 M49 52 L54 57 L59 52" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </div>
-                    <h3>FASCICULES DIGITAUX & RESSOURCES</h3>
-                    <div class="category-list-items">
-                        <div>Fascicules Corrigés</div>
-                        <div>Annales 2020-2025</div>
-                        <div>Fiches de Synthèse PDF</div>
-                    </div>
-                </div>
-            </div>
-        </section>
+    // Enseignement
+    { id: 19, title: "Fascicule Concours FASTEF - Élèves Professeurs (Secondaire)", sector: "Enseignement", type: "Fascicules & Packs", price: 6000, description: "Didactique des disciplines, méthodologie de leçon et épreuves de spécialité.", icon: "🎓" },
+    { id: 20, title: "Annales Corrigées CREM (Recrutement Élèves-Maîtres)", sector: "Enseignement", type: "Annales corrigées", price: 4500, description: "Sujets de français, mathématiques, psychopédagogie et géographie du Sénégal.", icon: "📝" },
+    { id: 21, title: "Cours PDF Psychologie de l'Enfant & Pédagogie Générale", sector: "Enseignement", type: "Cours PDF", price: 3500, description: "Guide indispensable pour reussir les entretiens avec le jury et les épreuves écrites.", icon: "📖" },
 
-        <!-- Section 2: NOS PRODUITS VEDETTES -->
-        <section class="section-featured-v2" id="catalogue-section">
-            <h2 class="section-title-v2">NOS PRODUITS VEDETTES</h2>
-            <div class="products-grid-v2" id="productGrid">
-                <!-- Products will be injected here -->
-            </div>
-        </section>
+    // Formations Digitales
+    { id: 22, title: "Formation Complète Excel 2026 : De Débutant à Expert", sector: "Formations Digitales", type: "Formations", price: 12000, description: "Maîtrisez les formules complexes, TCD, rechercheV/X et l'automatisation de tableaux de bord.", icon: "💻" },
+    { id: 23, title: "Masterclass Intelligence Artificielle & Prompt Engineering 2026", sector: "Formations Digitales", type: "Formations", price: 15000, description: "Apprenez à utiliser ChatGPT, Midjourney et Claude pour décupler votre productivité professionnelle.", icon: "🤖" },
+    { id: 24, title: "Bootcamp Développement Web : HTML, CSS, JavaScript & React", sector: "Formations Digitales", type: "Formations", price: 25000, description: "Créez des sites web modernes et des applications interactives de A à Z.", icon: "🌐" },
+    { id: 25, title: "Formation Graphisme & Design avec Photoshop & Canva Pro", sector: "Formations Digitales", type: "Formations", price: 10000, description: "Concevez des affiches, visuels réseaux sociaux et chartes graphiques de qualité pro.", icon: "🎨" },
+    { id: 26, title: "Pack Bureautique Intégral : Word, PowerPoint & Gestion PDF", sector: "Formations Digitales", type: "Formations", price: 8000, description: "Mise en page de rapports professionnels, présentations d'impact et gestion documentaire.", icon: "🖥️" },
+    { id: 27, title: "Initiation à la Programmation Python & Analyse de Données", sector: "Formations Digitales", type: "Formations", price: 18000, description: "Les bases solides de Python, manipulation de fichiers, Pandas et création de graphiques.", icon: "🐍" }
+];
 
-        <!-- Section 3: Feature Split Section -->
-        <section class="section-feature-split">
-            <div>
-                <img src="./hero_students.png" alt="Réussite aux concours SK ACADEMIA" class="feature-split-img">
-            </div>
-            <div class="feature-split-content">
-                <h2>SK ACADEMY : VOTRE CLÉ POUR RÉUSSIR</h2>
-                <p>Nos ressources pédagogiques, cours en ligne et annales corrigées sont élaborés par des enseignants et experts des concours de l'État au Sénégal pour maximiser vos chances de réussite.</p>
-                <button class="btn-hero-cta" onclick="document.getElementById('catalogue-section').scrollIntoView({behavior:'smooth'})">DÉCOUVRIR LE CATALOGUE</button>
-            </div>
-        </section>
+const SECTORS_LIST = [
+    "Toutes les filières",
+    "Administration & Justice",
+    "Sécurité & Défense",
+    "Douanes Sénégalaises",
+    "Santé & Social",
+    "Grandes Écoles",
+    "Enseignement",
+    "Formations Digitales"
+];
 
-        <!-- Site Footer V2 -->
-        <footer class="site-footer-v2">
-            <div class="footer-grid-v2">
-                <div>
-                    <h4 style="font-size: 1.2rem; font-family: var(--font-heading);">SK ACADEMY</h4>
-                    <p style="line-height: 1.6; color: #CBD5E1;">La plateforme N°1 au Sénégal pour la préparation aux concours de la fonction publique (ENA, Police, Douanes, Santé, FASTEF) et formations en informatique.</p>
-                </div>
-                <div class="footer-col-v2">
-                    <h4>NAVIGATION</h4>
-                    <ul>
-                        <li><a href="#">Accueil</a></li>
-                        <li><a href="#catalogue-section">Boutique</a></li>
-                        <li><a href="#catalogue-section">Préparation Concours</a></li>
-                        <li><a href="#catalogue-section">Formations</a></li>
-                        <li><a href="#admin">Administration</a></li>
-                    </ul>
-                </div>
-                <div class="footer-col-v2">
-                    <h4>FORMATIONS</h4>
-                    <ul>
-                        <li><a href="#">Concours ENA</a></li>
-                        <li><a href="#">Police & Gendarmerie</a></li>
-                        <li><a href="#">Douanes & Santé</a></li>
-                        <li><a href="#">Développement Web</a></li>
-                        <li><a href="#">Bureautique Excel</a></li>
-                    </ul>
-                </div>
-                <div class="footer-col-v2">
-                    <h4>CONTACT</h4>
-                    <ul>
-                        <li>📞 +221 76 574 93 43</li>
-                        <li>✉️ contact@skacademia.sn</li>
-                        <li>📍 Dakar, Sénégal</li>
-                    </ul>
-                </div>
-            </div>
-            <div class="footer-bottom-v2">
-                © 2026 SK ACADEMY — Tous droits réservés. Plateforme de Préparation aux Concours & Formations.
-            </div>
-        </footer>
+const TYPES_LIST = [
+    "Tous les types",
+    "Fascicules & Packs",
+    "Annales corrigées",
+    "Cours PDF",
+    "Formations"
+];
 
-        <!-- Auth Modal -->
-        <div class="modal-backdrop" id="authModal">
-            <div class="modal">
-                <div class="modal-header">
-                    <h3 id="authTitle">Connexion</h3>
-                    <button class="close-btn" id="closeModal">&times;</button>
-                </div>
-                <!-- Step 1: Email Input -->
-                <form id="loginForm">
-                    <div class="form-group">
-                        <label>Email</label>
-                        <input type="email" id="authEmail" placeholder="votre@email.com" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;" id="loginSubmitBtn">Recevoir mon code OTP</button>
-                </form>
-                
-                <!-- Step 2: OTP Input (Hidden initially) -->
-                <form id="otpForm" style="display: none;">
-                    <div class="form-group">
-                        <label>Code OTP</label>
-                        <input type="text" id="authOtp" placeholder="123456" required autocomplete="off" maxlength="6">
-                    </div>
-                    <button type="submit" class="btn btn-accent" style="width: 100%; margin-top: 1rem;" id="otpSubmitBtn">Vérifier et me connecter</button>
-                </form>
-            </div>
-        </div>
+// ==========================================
+// 2. Application State
+// ==========================================
+const state = {
+    currentRoute: 'accueil',
+    searchQuery: '',
+    selectedSector: 'Toutes les filières',
+    selectedType: 'Tous les types',
+    cart: [],
+    isCartOpen: false,
+    isCheckoutOpen: false,
+    orderSuccess: false
+};
 
-        <!-- Supabase Modal -->
-        <div class="modal-backdrop" id="supabaseModal">
-            <div class="modal">
-                <div class="modal-header">
-                    <h3>⚡ Supabase Cloud</h3>
-                    <button class="close-btn" id="closeSupabaseModal">&times;</button>
-                </div>
-                <form id="supabaseForm">
-                    <div class="form-group">
-                        <label>Supabase Project URL</label>
-                        <input type="url" id="sbUrl" placeholder="https://xyz.supabase.co" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Supabase Anon / Service Key</label>
-                        <input type="password" id="sbKey" placeholder="eyJhbGciOiJIUzI1NiIsIn..." required>
-                    </div>
-                    <button type="submit" class="btn btn-accent" style="width: 100%; margin-top: 1rem;" id="sbSubmitBtn">💾 Enregistrer & Connecter</button>
-                </form>
-            </div>
-        </div>
+// ==========================================
+// 3. Helper Functions & Cart Logic
+// ==========================================
+function formatPrice(amount) {
+    return new Intl.NumberFormat('fr-FR').format(amount) + ' FCFA';
+}
 
-        <!-- Cart Drawer Overlay -->
-        <div class="cart-drawer-overlay" id="cartOverlay">
-            <div class="cart-drawer">
-                <div class="cart-header">
-                    <h3>🛒 Votre Panier</h3>
-                    <button class="close-btn" id="closeCartBtn">&times;</button>
-                </div>
-                <div class="cart-body" id="cartBody">
-                    <p style="text-align: center; color: #64748b; margin-top: 2rem;">Votre panier est vide.</p>
-                </div>
-                <div class="cart-footer">
-                    <div class="cart-total">
-                        <span>Total :</span>
-                        <span id="cartTotal">0 FCFA</span>
-                    </div>
-                    <button class="btn btn-accent" style="width: 100%; padding: 1rem; font-size: 1.05rem;" id="checkoutBtn">Commander via WhatsApp 💬</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Chatbot Seny Floating Widget -->
-        <button class="chat-widget-btn" id="senyChatBtn" title="Discuter avec Seny">🤖</button>
-        <div class="chat-widget-box" id="senyChatBox">
-            <div class="chat-box-header">
-                <div class="info">
-                    <div class="chat-avatar">🤖</div>
-                    <div>
-                        <h4>Seny</h4>
-                        <p>Conseiller SK ACADEMIA</p>
-                    </div>
-                </div>
-                <button class="close-btn" id="closeSenyChat" style="color: white;">&times;</button>
-            </div>
-            <div class="chat-box-messages" id="senyChatMessages">
-                <div class="chat-msg bot">
-                    Bonjour ! 👋 Je suis Seny, votre conseiller SK ACADEMIA. Quelle préparation aux concours ou quelle formation informatique recherchez-vous aujourd'hui ?
-                </div>
-            </div>
-            <div class="chat-typing-indicator" id="senyTyping">Seny est en train d'écrire...</div>
-            <form class="chat-box-input" id="senyChatForm">
-                <input type="text" id="senyInput" placeholder="Posez votre question à Seny..." autocomplete="off" required>
-                <button type="submit">➔</button>
-            </form>
-        </div>
-    `;
-
-    // Fetch and render products from backend
-    fetchProducts();
+function addToCart(productId) {
+    const product = PRODUCTS_DATA.find(p => p.id === productId);
+    if (!product) return;
     
-    // Check Auth & Supabase Status & Cart & Chatbot
-    checkAuthState();
-    checkSupabaseStatus();
-    initCart();
-    initSenyChatbot();
-
-    // Supabase Modal Logic
-    const supabaseConfigBtn = document.getElementById('supabaseConfigBtn');
-    const supabaseModal = document.getElementById('supabaseModal');
-    const closeSupabaseModal = document.getElementById('closeSupabaseModal');
-    const supabaseForm = document.getElementById('supabaseForm');
-    const sbUrlInput = document.getElementById('sbUrl');
-    const sbKeyInput = document.getElementById('sbKey');
-
-    // Pre-fill if present in LocalStorage
-    if (localStorage.getItem('sk_supabase_url')) sbUrlInput.value = localStorage.getItem('sk_supabase_url');
-    if (localStorage.getItem('sk_supabase_key')) sbKeyInput.value = localStorage.getItem('sk_supabase_key');
-
-    supabaseConfigBtn.addEventListener('click', () => {
-        supabaseModal.classList.add('active');
-    });
-
-    closeSupabaseModal.addEventListener('click', () => {
-        supabaseModal.classList.remove('active');
-    });
-
-    supabaseModal.addEventListener('click', (e) => {
-        if (e.target === supabaseModal) supabaseModal.classList.remove('active');
-    });
-
-    supabaseForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const url = sbUrlInput.value.trim();
-        const key = sbKeyInput.value.trim();
-        const btn = document.getElementById('sbSubmitBtn');
-        btn.innerText = "Connexion...";
-        btn.disabled = true;
-
-        try {
-            const res = await fetch('http://localhost:3000/api/settings/supabase', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url, key })
-            });
-            const data = await res.json();
-            if (data.success) {
-                localStorage.setItem('sk_supabase_url', url);
-                localStorage.setItem('sk_supabase_key', key);
-                alert("⚡ " + data.message);
-                supabaseModal.classList.remove('active');
-                checkSupabaseStatus();
-                fetchProducts();
-            } else {
-                alert("⚠️ Erreur: " + data.error);
-            }
-        } catch (err) {
-            alert("Erreur de connexion au serveur Backend");
-        }
-        btn.innerText = "💾 Enregistrer & Connecter";
-        btn.disabled = false;
-    });
-
-    // Modal Logic
-    const loginBtn = document.getElementById('loginBtn');
-    const authModal = document.getElementById('authModal');
-    const closeModal = document.getElementById('closeModal');
-    const loginForm = document.getElementById('loginForm');
-    const otpForm = document.getElementById('otpForm');
-    const authTitle = document.getElementById('authTitle');
-    const emailInput = document.getElementById('authEmail');
-
-    loginBtn.addEventListener('click', () => {
-        // If already logged in, this button acts as Logout
-        if (localStorage.getItem('token')) {
-            localStorage.removeItem('token');
-            checkAuthState();
-            return;
-        }
-        authModal.classList.add('active');
-        loginForm.style.display = 'block';
-        otpForm.style.display = 'none';
-        authTitle.innerText = "Connexion";
-    });
-
-    closeModal.addEventListener('click', () => {
-        authModal.classList.remove('active');
-    });
-
-    authModal.addEventListener('click', (e) => {
-        if (e.target === authModal) {
-            authModal.classList.remove('active');
-        }
-    });
-
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = emailInput.value;
-        const btn = document.getElementById('loginSubmitBtn');
-        btn.innerText = "Génération...";
-        btn.disabled = true;
-
-        try {
-            const res = await fetch('http://localhost:3000/api/auth/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email })
-            });
-            const data = await res.json();
-            
-            if (data.success) {
-                // Show OTP form
-                loginForm.style.display = 'none';
-                otpForm.style.display = 'block';
-                authTitle.innerText = "Saisir le Code";
-                // Show mock code for demo (normally sent by email)
-                alert("Pour le DEV, votre code est : " + data.dev_code);
-            } else {
-                alert(data.error || "Erreur serveur");
-            }
-        } catch (err) {
-            alert("Erreur de connexion au serveur");
-        }
-        btn.innerText = "Recevoir mon code OTP";
-        btn.disabled = false;
-    });
-
-    otpForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = emailInput.value;
-        const code = document.getElementById('authOtp').value;
-        const btn = document.getElementById('otpSubmitBtn');
-        btn.innerText = "Vérification...";
-        btn.disabled = true;
-
-        try {
-            const res = await fetch('http://localhost:3000/api/auth/verify', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, code })
-            });
-            const data = await res.json();
-            
-            if (data.success) {
-                localStorage.setItem('token', data.token);
-                authModal.classList.remove('active');
-                checkAuthState();
-                alert("Connexion réussie !");
-            } else {
-                alert(data.error || "Code invalide");
-            }
-        } catch (err) {
-            alert("Erreur de connexion au serveur");
-        }
-        btn.innerText = "Vérifier et me connecter";
-        btn.disabled = false;
-    });
-});
-
-function checkAuthState() {
-    const token = localStorage.getItem('token');
-    const loginBtn = document.getElementById('loginBtn');
-    if (token) {
-        loginBtn.innerText = "Déconnexion";
-        loginBtn.classList.remove('btn-primary');
-        loginBtn.classList.add('btn-accent');
-    } else {
-        loginBtn.innerText = "Connexion";
-        loginBtn.classList.add('btn-primary');
-        loginBtn.classList.remove('btn-accent');
-    }
-}
-
-async function checkSupabaseStatus() {
-    const btn = document.getElementById('supabaseConfigBtn');
-    if (!btn) return;
-    try {
-        const res = await fetch('http://localhost:3000/api/settings/supabase');
-        const data = await res.json();
-        if (data.active) {
-            btn.innerText = "⚡ Supabase (Connecté)";
-            btn.style.background = "#10b981"; // green
-        } else {
-            btn.innerText = "⚡ Supabase (Déconnecté)";
-            btn.style.background = "var(--orange)";
-        }
-    } catch (e) {
-        btn.innerText = "⚡ Supabase";
-    }
-}
-
-let CART = JSON.parse(localStorage.getItem('sk_cart') || '[]');
-
-function initCart() {
-    const openCartBtn = document.getElementById('openCartBtn');
-    const closeCartBtn = document.getElementById('closeCartBtn');
-    const cartOverlay = document.getElementById('cartOverlay');
-    const checkoutBtn = document.getElementById('checkoutBtn');
-
-    openCartBtn.addEventListener('click', () => {
-        cartOverlay.classList.add('active');
-        renderCart();
-    });
-
-    closeCartBtn.addEventListener('click', () => {
-        cartOverlay.classList.remove('active');
-    });
-
-    cartOverlay.addEventListener('click', (e) => {
-        if (e.target === cartOverlay) cartOverlay.classList.remove('active');
-    });
-
-    checkoutBtn.addEventListener('click', () => {
-        if (CART.length === 0) {
-            alert("Votre panier est vide !");
-            return;
-        }
-        let total = CART.reduce((sum, item) => sum + item.price * item.qty, 0);
-        let text = "Bonjour SK ACADEMIA, je souhaite commander :\n\n";
-        CART.forEach(item => {
-            text += `• ${item.title} (x${item.qty}) - ${item.price * item.qty} FCFA\n`;
-        });
-        text += `\n*TOTAL : ${total} FCFA*`;
-        
-        const phone = "221765749343";
-        const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
-        window.open(waUrl, '_blank');
-    });
-
-    renderCart();
-}
-
-function addToCart(product) {
-    const existing = CART.find(item => item.id === product.id);
+    const existing = state.cart.find(item => item.product.id === productId);
     if (existing) {
-        existing.qty += 1;
+        existing.quantity += 1;
     } else {
-        CART.push({ id: product.id, title: product.title, price: product.price, qty: 1 });
+        state.cart.push({ product, quantity: 1 });
     }
-    localStorage.setItem('sk_cart', JSON.stringify(CART));
-    renderCart();
-    document.getElementById('cartOverlay').classList.add('active');
+    updateCartUI();
 }
 
-function removeFromCart(id) {
-    CART = CART.filter(item => item.id !== id);
-    localStorage.setItem('sk_cart', JSON.stringify(CART));
-    renderCart();
+function updateCartQuantity(productId, delta) {
+    const item = state.cart.find(i => i.product.id === productId);
+    if (!item) return;
+    item.quantity += delta;
+    if (item.quantity <= 0) {
+        state.cart = state.cart.filter(i => i.product.id !== productId);
+    }
+    updateCartUI();
 }
 
-function renderCart() {
-    const cartBody = document.getElementById('cartBody');
-    const cartCount = document.getElementById('cartCount');
-    const cartTotal = document.getElementById('cartTotal');
+function getCartTotal() {
+    return state.cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+}
 
-    const totalQty = CART.reduce((sum, item) => sum + item.qty, 0);
-    const totalPrice = CART.reduce((sum, item) => sum + item.price * item.qty, 0);
+function getCartCount() {
+    return state.cart.reduce((count, item) => count + item.quantity, 0);
+}
 
-    cartCount.innerText = totalQty;
-    cartTotal.innerText = totalPrice.toLocaleString() + ' FCFA';
+function updateCartUI() {
+    const badge = document.getElementById('cartBadgeCount');
+    if (badge) {
+        badge.textContent = getCartCount();
+    }
+    renderCartDrawerBody();
+}
 
-    if (CART.length === 0) {
-        cartBody.innerHTML = '<p style="text-align: center; color: #64748b; margin-top: 2rem;">Votre panier est vide.</p>';
+// ==========================================
+// 4. View Components
+// ==========================================
+
+function renderHeader() {
+    return `
+    <header class="site-header">
+        <div class="header-container">
+            <a href="#accueil" class="brand-logo">
+                <div class="brand-icon-box">🎓</div>
+                <span>SK ACADEMIA</span>
+            </a>
+            
+            <nav class="nav-menu">
+                <a href="#accueil" class="nav-link ${state.currentRoute === 'accueil' ? 'active' : ''}">Accueil</a>
+                <a href="#catalogue" class="nav-link ${state.currentRoute === 'catalogue' ? 'active' : ''}">Catalogue</a>
+                <a href="#formations" class="nav-link ${state.currentRoute === 'formations' ? 'active' : ''}">Formations</a>
+                <a href="#a-propos" class="nav-link ${state.currentRoute === 'a-propos' ? 'active' : ''}">À propos</a>
+                <a href="#contact" class="nav-link ${state.currentRoute === 'contact' ? 'active' : ''}">Contact</a>
+            </nav>
+            
+            <div class="header-actions">
+                <button class="btn-cart" id="openCartDrawerBtn">
+                    <span>🛒 Panier</span>
+                    <span class="cart-badge-pill" id="cartBadgeCount">${getCartCount()}</span>
+                </button>
+            </div>
+        </div>
+    </header>
+    `;
+}
+
+function renderFooter() {
+    return `
+    <footer class="site-footer">
+        <div class="footer-grid">
+            <div>
+                <div class="footer-brand">SK ACADEMIA SÉNÉGAL</div>
+                <p class="footer-desc">Plateforme N°1 au Sénégal dédiée aux ressources de préparation aux concours administratifs, militaires, de santé, grandes écoles et formations aux compétences digitales du futur.</p>
+            </div>
+            <div>
+                <h4 class="footer-col-title">ACCÈS RAPIDE</h4>
+                <ul class="footer-links-list">
+                    <li><a href="#accueil">Accueil</a></li>
+                    <li><a href="#catalogue">Catalogue Complet</a></li>
+                    <li><a href="#formations">Formations Digitales</a></li>
+                    <li><a href="#a-propos">À Propos de Nous</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="footer-col-title">CONCOURS PHARRES</h4>
+                <ul class="footer-links-list">
+                    <li><a href="#catalogue" onclick="setCatalogueFilter('Administration & Justice')">Concours ENA</a></li>
+                    <li><a href="#catalogue" onclick="setCatalogueFilter('Sécurité & Défense')">Police & Gendarmerie</a></li>
+                    <li><a href="#catalogue" onclick="setCatalogueFilter('Douanes Sénégalaises')">Douanes Sénégalaises</a></li>
+                    <li><a href="#catalogue" onclick="setCatalogueFilter('Santé & Social')">Concours ENDSS</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="footer-col-title">CONTACT & SUPPORT</h4>
+                <ul class="footer-links-list">
+                    <li>📞 WhatsApp / Tél : +221 76 574 93 43</li>
+                    <li>✉️ Email : contact@skacademia.sn</li>
+                    <li>📍 Adresse : Dakar, Sénégal</li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            © 2026 SK ACADEMIA — Tous droits réservés. Conçu pour la réussite aux concours au Sénégal.
+        </div>
+    </footer>
+    `;
+}
+
+function renderAccueilPage() {
+    return `
+    <section class="hero-section">
+        <div class="hero-content">
+            <div>
+                <h1 class="hero-title">Réussissez vos Concours au Sénégal avec SK ACADEMIA</h1>
+                <p class="hero-subtitle">Accédez instantanément aux fascicules corrigés, annales de 2018 à 2025, cours synthétiques et formations en informatique conçus par des experts du Sénégal.</p>
+                <a href="#catalogue" class="btn-hero-cta">🚀 Découvrir le Catalogue Complet</a>
+            </div>
+            <div class="hero-image-box">
+                <img src="./hero_students.png" alt="Étudiants SK ACADEMIA Sénégal">
+            </div>
+        </div>
+    </section>
+
+    <div class="section-container">
+        <h2 class="section-title">NOS SECTEURS DE PRÉPARATION</h2>
+        <p class="section-subtitle">Sélectionnez votre filière pour consulter les annales et fascicules dédiés.</p>
+        
+        <div class="categories-cards-grid">
+            <div class="cat-card-home" onclick="setCatalogueFilter('Administration & Justice')">
+                <div class="cat-icon-header">🏛️</div>
+                <h3 class="cat-card-title">Administration & Justice</h3>
+                <div class="cat-items-list">
+                    <div>• Concours Direct ENA</div>
+                    <div>• Greffiers & Secrétaires de Greffe</div>
+                    <div>• Administration Générale</div>
+                </div>
+            </div>
+
+            <div class="cat-card-home" onclick="setCatalogueFilter('Sécurité & Défense')">
+                <div class="cat-icon-header">🛡️</div>
+                <h3 class="cat-card-title">Sécurité & Défense</h3>
+                <div class="cat-items-list">
+                    <div>• Gardiens de la Paix & Police</div>
+                    <div>• Officiers & Commissaires</div>
+                    <div>• Élèves Gendarmes</div>
+                </div>
+            </div>
+
+            <div class="cat-card-home" onclick="setCatalogueFilter('Douanes Sénégalaises')">
+                <div class="cat-icon-header">📦</div>
+                <h3 class="cat-card-title">Douanes Sénégalaises</h3>
+                <div class="cat-items-list">
+                    <div>• Agents de Constatation</div>
+                    <div>• Contrôleurs des Douanes</div>
+                    <div>• Inspecteurs des Douanes</div>
+                </div>
+            </div>
+
+            <div class="cat-card-home" onclick="setCatalogueFilter('Formations Digitales')">
+                <div class="cat-icon-header">💻</div>
+                <h3 class="cat-card-title">Formations Digitales</h3>
+                <div class="cat-items-list">
+                    <div>• Excel & Bureautique Pro</div>
+                    <div>• IA & Prompt Engineering</div>
+                    <div>• Développement Web</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+}
+
+function renderCataloguePage() {
+    // Filter Products based on search query, sector, and type
+    const filteredProducts = PRODUCTS_DATA.filter(product => {
+        const matchesQuery = state.searchQuery === '' || 
+            product.title.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
+            product.description.toLowerCase().includes(state.searchQuery.toLowerCase());
+        
+        const matchesSector = state.selectedSector === 'Toutes les filières' || product.sector === state.selectedSector;
+        const matchesType = state.selectedType === 'Tous les types' || product.type === state.selectedType;
+
+        return matchesQuery && matchesSector && matchesType;
+    });
+
+    const sectorPills = SECTORS_LIST.map(sector => `
+        <button class="filter-pill ${state.selectedSector === sector ? 'active' : ''}" 
+                onclick="window.selectSector('${sector}')">
+            ${sector}
+        </button>
+    `).join('');
+
+    const typePills = TYPES_LIST.map(type => `
+        <button class="filter-pill ${state.selectedType === type ? 'active' : ''}" 
+                onclick="window.selectType('${type}')">
+            ${type}
+        </button>
+    `).join('');
+
+    const productCards = filteredProducts.length > 0 
+        ? filteredProducts.map(product => `
+            <div class="product-card">
+                <div class="card-banner">
+                    <span class="card-banner-icon">${product.icon}</span>
+                    <span class="badge-type">${product.type}</span>
+                </div>
+                <div class="card-content">
+                    <div class="category-tag">${product.sector}</div>
+                    <h3 class="card-title">${product.title}</h3>
+                    <p class="card-description">${product.description}</p>
+                    <div class="card-footer">
+                        <div class="card-price">${formatPrice(product.price)}</div>
+                        <button class="btn-add-cart" onclick="window.handleAddToCart(${product.id}, this)">
+                            <span>🛒 Ajouter</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('')
+        : `<div style="grid-column: 1/-1; text-align: center; padding: 4rem 1rem; color: #64748B;">
+                <h3>Aucun résultat trouvé</h3>
+                <p>Essayez de modifier votre recherche ou de réinitialiser vos filtres.</p>
+           </div>`;
+
+    return `
+    <div class="catalogue-container">
+        <h1 class="page-header-title">Catalogue complet</h1>
+        <p class="page-header-subtitle">27 supports pour les concours du Sénégal. Filtrez par filière, par type ou faites une recherche.</p>
+        
+        <div class="search-box-wrapper">
+            <span class="search-icon-inside">🔍</span>
+            <input type="text" class="search-input" id="searchInput" 
+                   placeholder="Rechercher un concours, une matière..." 
+                   value="${state.searchQuery}">
+        </div>
+
+        <div class="filter-group">
+            <div class="filter-row">${sectorPills}</div>
+            <div class="filter-row">${typePills}</div>
+        </div>
+
+        <div class="results-count-bar">
+            ${filteredProducts.length} résultat${filteredProducts.length > 1 ? 's' : ''}
+        </div>
+
+        <div class="products-grid">
+            ${productCards}
+        </div>
+    </div>
+    `;
+}
+
+function renderFormationsPage() {
+    const formations = PRODUCTS_DATA.filter(p => p.sector === 'Formations Digitales');
+    const cards = formations.map(item => `
+        <div class="product-card">
+            <div class="card-banner" style="background: linear-gradient(135deg, #064E3B 0%, #0D9488 100%);">
+                <span class="card-banner-icon">${item.icon}</span>
+                <span class="badge-type">FORMATION</span>
+            </div>
+            <div class="card-content">
+                <div class="category-tag">COMPÉTENCE DIGITALE</div>
+                <h3 class="card-title">${item.title}</h3>
+                <p class="card-description">${item.description}</p>
+                <div class="card-footer">
+                    <div class="card-price">${formatPrice(item.price)}</div>
+                    <button class="btn-add-cart" onclick="window.handleAddToCart(${item.id}, this)">
+                        <span>🎓 S'inscrire</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+
+    return `
+    <div class="catalogue-container">
+        <h1 class="page-header-title">Formations Digitales 2026</h1>
+        <p class="page-header-subtitle">Développez des compétences clés en bureautique, IA, programmation et design pour exceller dans le monde professionnel au Sénégal.</p>
+        
+        <div class="products-grid" style="margin-top: 2rem;">
+            ${cards}
+        </div>
+    </div>
+    `;
+}
+
+function renderAProposPage() {
+    return `
+    <div class="catalogue-container">
+        <h1 class="page-header-title">À Propos de SK ACADEMIA</h1>
+        <p class="page-header-subtitle">Notre mission est d'offrir à chaque candidat du Sénégal les meilleures chances de réussite aux concours nationaux grâce à des contenus pédagogiques d'excellence.</p>
+        
+        <div style="background: white; border: 1px solid #E2E8F0; border-radius: 16px; padding: 2.5rem; margin-top: 2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem;">
+            <div>
+                <h3 style="font-size: 1.25rem; color: #0F2C59; margin-bottom: 0.75rem;">📚 Rigueur & Conduite Pédagogique</h3>
+                <p style="color: #475569; font-size: 0.95rem; line-height: 1.6;">Tous nos fascicules et corrigés sont rédigés par des professeurs qualifiés et des anciens candidats ayant réussi les concours administratifs majeurs.</p>
+            </div>
+            <div>
+                <h3 style="font-size: 1.25rem; color: #0F2C59; margin-bottom: 0.75rem;">⚡ Livraison Immédiate PDF</h3>
+                <p style="color: #475569; font-size: 0.95rem; line-height: 1.6;">Dès validation de votre commande, recevez vos fichiers directement sur votre téléphone via WhatsApp ou par Email sous format numérique accessible à tout moment.</p>
+            </div>
+            <div>
+                <h3 style="font-size: 1.25rem; color: #0F2C59; margin-bottom: 0.75rem;">🤝 Assistance & Conseils</h3>
+                <p style="color: #475569; font-size: 0.95rem; line-height: 1.6;">Notre équipe reste disponible 7j/7 pour vous guider dans le choix des concours adaptés à votre profil et votre diplôme.</p>
+            </div>
+        </div>
+    </div>
+    `;
+}
+
+function renderContactPage() {
+    return `
+    <div class="catalogue-container">
+        <h1 class="page-header-title">Contactez-nous</h1>
+        <p class="page-header-subtitle">Une question sur un fascicule ou besoin d'orientation pour un concours ? Remplissez ce formulaire ou écrivez-nous sur WhatsApp.</p>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; margin-top: 2rem;" class="contact-grid-wrapper">
+            <div style="background: white; border: 1px solid #E2E8F0; border-radius: 16px; padding: 2rem;">
+                <h3 style="font-size: 1.25rem; margin-bottom: 1.5rem;">Envoyer un message</h3>
+                <form onsubmit="window.handleContactSubmit(event)">
+                    <div class="form-group">
+                        <label class="form-label">Nom complet</label>
+                        <input type="text" class="form-control" placeholder="Moussa Sow" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Téléphone (WhatsApp)</label>
+                        <input type="tel" class="form-control" placeholder="+221 77 000 00 00" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" placeholder="moussa@example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Votre message</label>
+                        <textarea class="form-control" rows="4" placeholder="Bonjour, je souhaite obtenir des informations sur..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn-submit-order" style="background: #059669;">Envoyer le message</button>
+                </form>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                <div style="background: #0F2C59; color: white; border-radius: 16px; padding: 2rem;">
+                    <h3 style="color: white; margin-bottom: 1rem;">📞 Contact Direct WhatsApp</h3>
+                    <p style="color: #CBD5E1; margin-bottom: 1.5rem;">Pour une réponse instantanée et un accompagnement rapide :</p>
+                    <a href="https://wa.me/221765749343" target="_blank" class="btn-hero-cta" style="background: #25D366;">💬 Discuter sur WhatsApp (+221 76 574 93 43)</a>
+                </div>
+
+                <div style="background: white; border: 1px solid #E2E8F0; border-radius: 16px; padding: 2rem;">
+                    <h4 style="margin-bottom: 0.5rem;">📍 Localisation</h4>
+                    <p style="color: #64748B; font-size: 0.95rem;">Dakar, Sénégal — Service en ligne disponible dans toutes les régions du Sénégal.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+}
+
+function renderCartDrawer() {
+    return `
+    <div class="cart-drawer-backdrop ${state.isCartOpen ? 'open' : ''}" id="cartDrawerBackdrop">
+        <div class="cart-drawer-content">
+            <div class="cart-header">
+                <div class="cart-title">🛒 Votre Panier</div>
+                <button class="btn-close-drawer" onclick="window.toggleCart(false)">&times;</button>
+            </div>
+            
+            <div class="cart-body" id="cartDrawerBody">
+                <!-- Cart Items populated dynamically -->
+            </div>
+            
+            <div class="cart-footer">
+                <div class="cart-total-row">
+                    <span>Total :</span>
+                    <span id="cartTotalVal">${formatPrice(getCartTotal())}</span>
+                </div>
+                <button class="btn-checkout" onclick="window.openCheckout()">Passer commande</button>
+            </div>
+        </div>
+    </div>
+    `;
+}
+
+function renderCartDrawerBody() {
+    const bodyEl = document.getElementById('cartDrawerBody');
+    const totalEl = document.getElementById('cartTotalVal');
+    if (totalEl) totalEl.textContent = formatPrice(getCartTotal());
+    
+    if (!bodyEl) return;
+    
+    if (state.cart.length === 0) {
+        bodyEl.innerHTML = `<div class="cart-empty-msg">Votre panier est vide.</div>`;
         return;
     }
-
-    cartBody.innerHTML = CART.map(item => `
-        <div class="cart-item">
-            <div>
-                <div class="cart-item-title">${item.title}</div>
-                <div style="font-size: 0.85rem; color: #64748b;">Quantité : ${item.qty}</div>
-            </div>
-            <div style="text-align: right;">
-                <div class="cart-item-price">${(item.price * item.qty).toLocaleString()} FCFA</div>
-                <button onclick="window.removeFromCart(${item.id})" style="background:none; border:none; color:red; cursor:pointer; font-size:0.8rem; margin-top:0.3rem;">Supprimer</button>
-            </div>
-        </div>
-    `).join('');
-}
-
-window.removeFromCart = removeFromCart;
-
-async function fetchProducts() {
-    const grid = document.getElementById('productGrid');
-    if (!grid) return;
-    grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #64748b;">Chargement du catalogue SK ACADEMY...</p>';
-
-    try {
-        let data = [];
-        try {
-            const res = await fetch('http://localhost:3000/api/products');
-            data = await res.json();
-        } catch (err) {
-            console.warn("Backend non joignable pour les produits. Chargement du catalogue local.");
-        }
-
-        // Catalogue de secours si backend non joignable
-        if (!data || data.length === 0) {
-            data = [
-                { id: 1, title: "Fascicule ENA 2025 - Droit Public & Culture Générale", price: 5000, desc: "Annales corrigées et cours pour la préparation ENA Sénégal.", type: "Concours", icon: "📜" },
-                { id: 2, title: "Pack Spécial Concours Police & Gendarmerie", price: 5000, desc: "Épreuves corrigées, culture générale et conseils physiques.", type: "Concours", icon: "👮" },
-                { id: 3, title: "Formation Développement Web & Mobile (HTML, CSS, JS, React)", price: 25000, desc: "Formation pratique avec projets et certificat de réussite.", type: "Informatique", icon: "💻" },
-                { id: 4, title: "Fascicule Concours Douanes & Trésor Sénégal", price: 5000, desc: "Annales, finances publiques et droit fiscal.", type: "Fascicule", icon: "📦" },
-                { id: 5, title: "Formation Bureautique Pro (Word, Excel Avancé)", price: 15000, desc: "Maîtrisez les outils bureautiques essentiels pour l'entreprise.", type: "Informatique", icon: "📊" },
-                { id: 6, title: "Fascicule Concours Santé & Sage-Femme", price: 5000, desc: "Annales corrigées de biologie, anatomie et QCM.", type: "Concours", icon: "🏥" },
-                { id: 7, title: "Fascicule Concours FASTEF / Enseignement", price: 5000, desc: "Méthodologie de dissertation et sujets corrigés.", type: "Fascicule", icon: "🎓" }
-            ];
-        }
-
-        window._PRODUCTS = data;
-        renderProductGrid(data);
-
-        window.addToCartById = (id) => {
-            const prod = window._PRODUCTS.find(item => item.id == id);
-            if (prod) addToCart(prod);
-        };
-
-        window.filterByCategory = (catKeyword) => {
-            const catElem = document.getElementById('catalogue-section');
-            if (catElem) catElem.scrollIntoView({ behavior: 'smooth' });
-
-            const filtered = window._PRODUCTS.filter(p => 
-                (p.type && p.type.toLowerCase().includes(catKeyword.toLowerCase())) ||
-                (p.category && p.category.toLowerCase().includes(catKeyword.toLowerCase())) ||
-                (p.title && p.title.toLowerCase().includes(catKeyword.toLowerCase()))
-            );
-            renderProductGrid(filtered.length > 0 ? filtered : window._PRODUCTS);
-        };
-
-    } catch (error) {
-        console.error("Failed to load products:", error);
-        grid.innerHTML = '<p style="grid-column: 1/-1; color:red; text-align:center;">Erreur lors du chargement des produits.</p>';
-    }
-}
-
-function renderProductGrid(productsList) {
-    const grid = document.getElementById('productGrid');
-    if (!grid) return;
-
-    grid.innerHTML = productsList.map((p) => `
-        <div class="product-card-v2">
-            <div class="product-card-v2-img">
-                ${p.icon || '📚'}
-            </div>
-            <div class="product-card-v2-body">
-                <div>
-                    <div class="product-card-v2-title">${p.title}</div>
-                    <div class="product-card-v2-desc">${p.desc || 'Préparation complète avec annales et corrigés détaillés.'}</div>
-                </div>
-                <div>
-                    <div class="product-card-v2-price">${p.price.toLocaleString()} FCFA</div>
-                    <button class="btn-add-cart-v2" onclick="window.addToCartById(${p.id})">AJOUTER AU PANIER</button>
-                </div>
-            </div>
-        </div>
-    `).join('');
-}
-
-// Seny Chatbot Logic
-function initSenyChatbot() {
-    const senyChatBtn = document.getElementById('senyChatBtn');
-    const senyChatBox = document.getElementById('senyChatBox');
-    const closeSenyChat = document.getElementById('closeSenyChat');
-    const senyChatForm = document.getElementById('senyChatForm');
-    const senyInput = document.getElementById('senyInput');
-    const senyChatMessages = document.getElementById('senyChatMessages');
-    const senyTyping = document.getElementById('senyTyping');
-
-    let chatHistory = [];
-    let messageCount = parseInt(sessionStorage.getItem('seny_msg_count') || '0', 10);
-    const MAX_SESSION_MESSAGES = 20;
-
-    senyChatBtn.addEventListener('click', () => {
-        senyChatBox.classList.toggle('active');
-        if (senyChatBox.classList.contains('active')) {
-            senyInput.focus();
-        }
-    });
-
-    closeSenyChat.addEventListener('click', () => {
-        senyChatBox.classList.remove('active');
-    });
-
-    senyChatForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const userText = senyInput.value.trim();
-        if (!userText) return;
-
-        // Check session rate limit
-        if (messageCount >= MAX_SESSION_MESSAGES) {
-            appendChatMsg('bot', "Vous avez atteint la limite de messages pour cette session. Pour continuer à discuter ou passer commande, contactez-nous directement sur WhatsApp au +221 76 574 93 43 ! 💬");
-            senyInput.value = '';
-            return;
-        }
-
-        // Render User Message
-        appendChatMsg('user', userText);
-        senyInput.value = '';
-        messageCount += 1;
-        sessionStorage.setItem('seny_msg_count', messageCount.toString());
-
-        // Show typing indicator
-        senyTyping.classList.add('active');
-        senyChatMessages.scrollTop = senyChatMessages.scrollHeight;
-
-        try {
-            const res = await fetch('http://localhost:3000/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    message: userText,
-                    history: chatHistory.slice(-10)
-                })
-            });
-
-            const data = await res.json();
-            senyTyping.classList.remove('active');
-
-            if (data.success && data.reply) {
-                appendChatMsg('bot', data.reply);
-                chatHistory.push({ role: 'user', content: userText });
-                chatHistory.push({ role: 'assistant', content: data.reply });
-            } else {
-                const aiReply = generateSenyClientAIReply(userText);
-                appendChatMsg('bot', aiReply);
-                chatHistory.push({ role: 'user', content: userText });
-                chatHistory.push({ role: 'assistant', content: aiReply });
-            }
-        } catch (err) {
-            console.warn("Backend API non joignable. Basculement sur le Moteur IA Intelligente Seny intégré.");
-            senyTyping.classList.remove('active');
-            const aiReply = generateSenyClientAIReply(userText);
-            appendChatMsg('bot', aiReply);
-            chatHistory.push({ role: 'user', content: userText });
-            chatHistory.push({ role: 'assistant', content: aiReply });
-        }
-    });
-
-    function appendChatMsg(sender, text) {
-        const msgDiv = document.createElement('div');
-        msgDiv.className = `chat-msg ${sender}`;
-        msgDiv.innerText = text;
-        senyChatMessages.appendChild(msgDiv);
-        senyChatMessages.scrollTop = senyChatMessages.scrollHeight;
-    }
-}
-
-// Moteur IA Client Intelligente Seny (SK ACADEMIA)
-function generateSenyClientAIReply(query) {
-    const q = query.toLowerCase();
-    const products = window._PRODUCTS || [];
-
-    // Commande / Achat / Inscription
-    if (q.includes('commander') || q.includes('acheter') || q.includes('panier') || q.includes('payer') || q.includes('wave') || q.includes('orange money')) {
-        return "Pour commander un fascicule ou vous inscrire à une formation, ajoutez simplement le produit à votre panier sur le site puis cliquez sur 'Commander via WhatsApp'. Notre équipe finalisera votre accès immédiatement par Wave ou Orange Money (+221 76 574 93 43). Quel concours ou formation souhaitez-vous commander aujourd'hui ?";
-    }
-
-    // ENA
-    if (q.includes('ena') || q.includes('administration')) {
-        return "Notre prépa au concours de l'ENA (École Nationale d'Administration) comprend les sujets corrigés de Droit Public, Économie et Culture Générale pour 5 000 FCFA. C'est l'un de nos packs les plus prisés avec un taux de réussite élevé. Souhaitez-vous l'ajouter à votre panier ou recevoir le programme détaillé ?";
-    }
-
-    // Police / Gendarmerie / Sécurité
-    if (q.includes('police') || q.includes('gendarmerie') || q.includes('sécurité') || q.includes('gardien')) {
-        return "Le pack Concours Police & Gendarmerie contient les annales corrigées 2020-2025, les conseils pour les épreuves physiques et la culture générale pour 5 000 FCFA. Il couvre les concours de Gardiens de la Paix, Sous-officiers et Officiers. Souhaitez-vous le commander pour démarrer vos révisions ?";
-    }
-
-    // Douanes / Trésor / Impôts
-    if (q.includes('douane') || q.includes('trésor') || q.includes('impôt') || q.includes('finances')) {
-        return "Le fascicule spécial Concours des Douanes & Trésor (5 000 FCFA) prépare intensivement au droit fiscal, aux finances publiques et à la rédaction administrative. Il est conçu par d'anciens lauréats du concours. Voulez-vous connaître les critères d'éligibilité pour cette année ?";
-    }
-
-    // Santé / Sage-femme / Infirmiers
-    if (q.includes('santé') || q.includes('sage') || q.includes('infirmier') || q.includes('médical')) {
-        return "Notre prépa aux concours de Santé (Sage-Femme, État, Infirmiers) est disponible à 5 000 FCFA avec les annales de biologie, anatomie et QCM corrigés. Elle garantit une révision ciblée sur les épreuves officielles. Souhaitez-vous ajouter ce fascicule à votre panier ?";
-    }
-
-    // FASTEF / Enseignement
-    if (q.includes('fastef') || q.includes('enseignant') || q.includes('professeur') || q.includes('éducation')) {
-        return "Le fascicule Concours FASTEF (5 000 FCFA) contient toutes les ressources pédagogiques, la méthodologie de la dissertation et les sujets d'épreuve d'admission. C'est le guide de référence pour réussir l'entrée à la FASTEF. Avez-vous une spécialité précise (Lettres, Mathématiques, SVT) ?";
-    }
-
-    // Informatique / Développement Web / Bureautique
-    if (q.includes('informatique') || q.includes('web') || q.includes('code') || q.includes('programmation') || q.includes('bureautique') || q.includes('excel')) {
-        return "SK ACADEMIA propose des formations pratiques en Informatique (Développement Web & Mobile, HTML/CSS/JS/React à 25 000 FCFA, et Bureautique Excel/Word à 15 000 FCFA). Chaque cours inclut des projets réels et un suivi personnalisé. Quel niveau souhaitez-vous atteindre ?";
-    }
-
-    // Prix / Tarifs
-    if (q.includes('prix') || q.includes('tarif') || q.includes('combien') || q.includes('coût')) {
-        return "Tous nos fascicules de préparation aux concours sénégalais sont au tarif unique de 5 000 FCFA. Nos formations pratiques en informatique varient de 15 000 FCFA à 25 000 FCFA. Le paiement se fait facilement via Wave ou Orange Money. Lequel de ces programmes vous intéresse ?";
-    }
-
-    // Salutations
-    if (q.includes('bonjour') || q.includes('salut') || q.includes('bonsoir') || q.includes('hello')) {
-        return "Bonjour et bienvenue chez SK ACADEMIA ! 👋 Je suis Seny, votre conseiller virtuel. Je peux vous guider dans le choix de votre préparation aux concours (ENA, Police, Douanes, FASTEF, Santé) ou formations en informatique. Comment puis-je vous aider aujourd'hui ?";
-    }
-
-    // Recherche dynamique dans les 27 produits
-    if (products && products.length > 0) {
-        const matched = products.find(p => p.title.toLowerCase().includes(q) || (p.desc && p.desc.toLowerCase().includes(q)));
-        if (matched) {
-            return `Le produit "${matched.title}" est disponible au tarif de ${matched.price.toLocaleString()} FCFA. ${matched.desc} Souhaitez-vous l'ajouter à votre panier dès maintenant ?`;
-        }
-    }
-
-    // Fallback IA Généraliste
-    return "SK ACADEMIA est la plateforme N°1 au Sénégal pour la préparation aux concours de la fonction publique (ENA, Police, Douanes, Gendarmerie, FASTEF, Santé) et les formations en informatique. Vous pouvez commander directement sur le site ou contacter notre secrétariat sur WhatsApp au +221 76 574 93 43. Que souhaitez-vous réviser en priorité ?";
-}
-
-// Handle Hash Routing (#admin)
-function handleRouting() {
-    if (window.location.hash === '#admin') {
-        const isAuth = sessionStorage.getItem('sk_admin_authenticated') === 'true';
-        if (isAuth) {
-            renderAdminDashboard();
-        } else {
-            renderAdminLogin();
-        }
-    }
-}
-
-window.addEventListener('hashchange', handleRouting);
-handleRouting();
-
-// Render Protected Admin Login Page
-function renderAdminLogin() {
-    const app = document.getElementById('app');
-    app.innerHTML = `
-        <div style="min-height: 100vh; background: #F5F6FA; display: flex; align-items: center; justify-content: center; padding: 2rem;">
-            <div style="background: white; border-radius: 20px; box-shadow: 0 15px 35px rgba(15,23,42,0.1); width: 100%; max-width: 440px; padding: 2.5rem; border: 1px solid #E2E8F0; text-align: center;">
-                <div style="width: 60px; height: 60px; border-radius: 50%; background: var(--blue-deep); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; margin: 0 auto 1.2rem;">🔐</div>
-                <h3 style="font-size: 1.4rem; font-weight: 800; color: var(--blue-deep); margin-bottom: 0.4rem;">Administration SK ACADEMIA</h3>
-                <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 1.8rem;">Veuillez saisir vos identifiants administrateur pour accéder au tableau de bord.</p>
-                <form id="adminLoginForm">
-                    <div style="text-align: left; margin-bottom: 1rem;">
-                        <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #475569; margin-bottom: 0.4rem;">Identifiant Admin / Email</label>
-                        <input type="email" id="adminEmail" placeholder="admin@skacademia.sn" required style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #CBD5E1; border-radius: 10px; font-size: 0.9rem;">
-                    </div>
-                    <div style="text-align: left; margin-bottom: 1.5rem;">
-                        <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #475569; margin-bottom: 0.4rem;">Mot de passe</label>
-                        <input type="password" id="adminPass" placeholder="••••••••" required style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #CBD5E1; border-radius: 10px; font-size: 0.9rem;">
-                    </div>
-                    <div id="adminLoginErr" style="display: none; color: #EF4444; font-size: 0.82rem; margin-bottom: 1rem; font-weight: 600;"></div>
-                    <button type="submit" style="width: 100%; background: var(--blue-deep); color: white; border: none; padding: 0.85rem; border-radius: 10px; font-weight: 800; font-size: 0.95rem; cursor: pointer;">Se Connecter au Dashboard →</button>
-                </form>
-                <div style="margin-top: 1.5rem;">
-                    <a href="/" style="font-size: 0.82rem; color: #64748b; text-decoration: none; font-weight: 600;">← Retour au site public</a>
-                </div>
-            </div>
-        </div>
-    `;
-
-    document.getElementById('adminLoginForm').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const email = document.getElementById('adminEmail').value.trim();
-        const pass = document.getElementById('adminPass').value.trim();
-        const errDiv = document.getElementById('adminLoginErr');
-
-        if (email.toLowerCase() === 'admin@skacademia.sn' || pass.length >= 4) {
-            sessionStorage.setItem('sk_admin_authenticated', 'true');
-            renderAdminDashboard();
-        } else {
-            errDiv.innerText = "Identifiants administrateur incorrects.";
-            errDiv.style.display = "block";
-        }
-    });
-}
-
-// Render Shopeers Admin Dashboard
-function renderAdminDashboard() {
-    const app = document.getElementById('app');
     
-    app.innerHTML = `
-        <div class="admin-layout">
-            <!-- Sidebar -->
-            <aside class="admin-sidebar">
-                <div>
-                    <div class="admin-sidebar-brand">
-                        SK<span>ACADEMIA</span>
-                    </div>
-                    <div class="admin-menu-section">
-                        <div class="admin-menu-section-title">Menu Principal</div>
-                        <a href="#admin" class="admin-menu-item active">
-                            <i data-lucide="layout-dashboard"></i>
-                            <span>Dashboard</span>
-                        </a>
-                        <a href="#admin-commandes" class="admin-menu-item">
-                            <i data-lucide="shopping-bag"></i>
-                            <span>Commandes</span>
-                        </a>
-                        <a href="#admin-produits" class="admin-menu-item">
-                            <i data-lucide="package"></i>
-                            <span>Produits</span>
-                        </a>
-                        <a href="#admin-clients" class="admin-menu-item">
-                            <i data-lucide="users"></i>
-                            <span>Clients</span>
-                        </a>
-                        <a href="#admin-contenu" class="admin-menu-item">
-                            <i data-lucide="file-text"></i>
-                            <span>Contenu & Fascicules</span>
-                        </a>
-                        <a href="#accueil" class="admin-menu-item">
-                            <i data-lucide="globe"></i>
-                            <span>Boutique en ligne</span>
-                        </a>
-                    </div>
-
-                    <div class="admin-menu-section">
-                        <div class="admin-menu-section-title">Analyse & Finances</div>
-                        <a href="#admin-finances" class="admin-menu-item">
-                            <i data-lucide="credit-card"></i>
-                            <span>Finances</span>
-                        </a>
-                        <a href="#admin-analytiques" class="admin-menu-item">
-                            <i data-lucide="bar-chart-3"></i>
-                            <span>Analytiques</span>
-                        </a>
-                        <a href="#admin-promotions" class="admin-menu-item">
-                            <i data-lucide="tag"></i>
-                            <span>Réductions & Promos</span>
-                        </a>
-                    </div>
-
-                    <div class="admin-menu-section">
-                        <div class="admin-menu-section-title">Système</div>
-                        <a href="#admin-parametres" class="admin-menu-item">
-                            <i data-lucide="settings"></i>
-                            <span>Paramètres</span>
-                        </a>
-                        <a href="#admin-aide" class="admin-menu-item">
-                            <i data-lucide="help-circle"></i>
-                            <span>Aide & Support</span>
-                        </a>
-                        <button class="admin-menu-item" style="width: 100%; border: none; background: none; color: #EF4444; margin-top: 0.5rem; cursor: pointer;" onclick="sessionStorage.removeItem('sk_admin_authenticated'); window.location.hash = ''; location.reload();">
-                            <i data-lucide="log-out" style="stroke: #EF4444;"></i>
-                            <span>Déconnexion Admin</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="admin-premium-card">
-                    <h5>Support WhatsApp 💬</h5>
-                    <p>Accès direct à l'assistance officielle SK ACADEMIA 24/7.</p>
-                    <button onclick="window.open('https://wa.me/221765749343', '_blank')">Contacter Support</button>
-                </div>
-            </aside>
-
-            <!-- Main Content Area -->
-            <main class="admin-main-wrapper">
-                <!-- Header -->
-                <header class="admin-header">
-                    <div class="admin-header-title">
-                        <h2>Tableau de bord</h2>
-                    </div>
-                    <div class="admin-header-actions">
-                        <select class="admin-select-period">
-                            <option value="30">30 derniers jours</option>
-                            <option value="7">7 derniers jours</option>
-                            <option value="90">Ce trimestre</option>
-                        </select>
-                        <button class="admin-btn-export" id="adminExportBtn">
-                            <i data-lucide="download"></i> Exporter CSV
-                        </button>
-                        <div style="width: 38px; height: 38px; border-radius: 50%; background: white; border: 1px solid #E2E8F0; display: flex; align-items: center; justify-content: center; cursor: pointer;">
-                            <i data-lucide="bell" style="width: 18px; color: #64748B;"></i>
-                        </div>
-                        <div class="admin-avatar">SK</div>
-                    </div>
-                </header>
-
-                <!-- 4 Stat Cards Row -->
-                <div class="admin-stats-row">
-                    <div class="admin-stat-card">
-                        <div class="admin-stat-card-header">
-                            <span class="admin-stat-card-title">Visiteurs</span>
-                            <div class="admin-stat-icon-box blue">
-                                <i data-lucide="eye"></i>
-                            </div>
-                        </div>
-                        <div class="admin-stat-number">6 225</div>
-                        <div class="admin-stat-footer">
-                            <span class="stat-badge-positive">↑ 8.4%</span>
-                            <span class="stat-subtext">vs période précédente</span>
-                        </div>
-                    </div>
-
-                    <div class="admin-stat-card">
-                        <div class="admin-stat-card-header">
-                            <span class="admin-stat-card-title">Nouvelles Inscriptions</span>
-                            <div class="admin-stat-icon-box orange">
-                                <i data-lucide="user-plus"></i>
-                            </div>
-                        </div>
-                        <div class="admin-stat-number">1 224</div>
-                        <div class="admin-stat-footer">
-                            <span class="stat-badge-positive">↑ 12.5%</span>
-                            <span class="stat-subtext">vs période précédente</span>
-                        </div>
-                    </div>
-
-                    <div class="admin-stat-card">
-                        <div class="admin-stat-card-header">
-                            <span class="admin-stat-card-title">Commandes</span>
-                            <div class="admin-stat-icon-box green">
-                                <i data-lucide="shopping-cart"></i>
-                            </div>
-                        </div>
-                        <div class="admin-stat-number">342</div>
-                        <div class="admin-stat-footer">
-                            <span class="stat-badge-positive">↑ 5.2%</span>
-                            <span class="stat-subtext">vs période précédente</span>
-                        </div>
-                    </div>
-
-                    <div class="admin-stat-card">
-                        <div class="admin-stat-card-header">
-                            <span class="admin-stat-card-title">Taux de Conversion</span>
-                            <div class="admin-stat-icon-box purple">
-                                <i data-lucide="trending-up"></i>
-                            </div>
-                        </div>
-                        <div class="admin-stat-number">5.4%</div>
-                        <div class="admin-stat-footer">
-                            <span class="stat-badge-negative">↓ 1.2%</span>
-                            <span class="stat-subtext">vs période précédente</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 2/3 + 1/3 Main Grid -->
-                <div class="admin-grid-two-cols">
-                    <!-- Left 2/3 Revenue Chart -->
-                    <div class="admin-card">
-                        <div class="admin-card-header">
-                            <h3>Chiffre d'Affaires</h3>
-                            <select class="admin-select-period" style="font-size: 0.78rem; padding: 0.35rem 0.75rem;">
-                                <option>7 derniers jours</option>
-                                <option selected>30 derniers jours</option>
-                                <option>Tout l'historique</option>
-                            </select>
-                        </div>
-                        <div class="admin-revenue-amount">
-                            446 700 FCFA
-                            <span class="stat-badge-positive" style="font-size: 0.85rem; font-weight: 700;">↑ 15.4% vs mois dernier</span>
-                        </div>
-                        <!-- Chart Canvas -->
-                        <div style="height: 220px; width: 100%; position: relative;">
-                            <canvas id="revenueChartCanvas"></canvas>
-                        </div>
-
-                        <!-- Category Breakdown Bars -->
-                        <div class="admin-category-breakdown">
-                            <div class="admin-cat-item">
-                                <div class="admin-cat-label">
-                                    <span>Administration & Justice</span>
-                                    <strong>45%</strong>
-                                </div>
-                                <div class="admin-cat-progress-bg">
-                                    <div class="admin-cat-progress-fill" style="width: 45%; background: var(--blue-deep);"></div>
-                                </div>
-                            </div>
-                            <div class="admin-cat-item">
-                                <div class="admin-cat-label">
-                                    <span>Sécurité & Défense</span>
-                                    <strong>28%</strong>
-                                </div>
-                                <div class="admin-cat-progress-bg">
-                                    <div class="admin-cat-progress-fill" style="width: 28%; background: var(--orange);"></div>
-                                </div>
-                            </div>
-                            <div class="admin-cat-item">
-                                <div class="admin-cat-label">
-                                    <span>Douanes & Santé</span>
-                                    <strong>18%</strong>
-                                </div>
-                                <div class="admin-cat-progress-bg">
-                                    <div class="admin-cat-progress-fill" style="width: 18%; background: #10B981;"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Right 1/3 Secondary Widgets -->
-                    <div class="admin-widgets-column">
-                        <!-- Widget 1: Activité par jour -->
-                        <div class="admin-card">
-                            <div class="admin-card-header">
-                                <h3>Activité par Jour</h3>
-                                <i data-lucide="more-horizontal" style="width: 18px; color: #94A3B8;"></i>
-                            </div>
-                            <div class="admin-days-bar-container">
-                                <div class="admin-day-col"><div class="admin-day-bar-bg"><div class="admin-day-bar-fill" style="height: 40%;"></div></div><span class="admin-day-label">Lun</span></div>
-                                <div class="admin-day-col"><div class="admin-day-bar-bg"><div class="admin-day-bar-fill" style="height: 65%;"></div></div><span class="admin-day-label">Mar</span></div>
-                                <div class="admin-day-col active"><div class="admin-day-bar-bg"><div class="admin-day-bar-fill" style="height: 95%;"></div></div><span class="admin-day-label">Mer</span></div>
-                                <div class="admin-day-col"><div class="admin-day-bar-bg"><div class="admin-day-bar-fill" style="height: 55%;"></div></div><span class="admin-day-label">Jeu</span></div>
-                                <div class="admin-day-col"><div class="admin-day-bar-bg"><div class="admin-day-bar-fill" style="height: 80%;"></div></div><span class="admin-day-label">Ven</span></div>
-                                <div class="admin-day-col"><div class="admin-day-bar-bg"><div class="admin-day-bar-fill" style="height: 45%;"></div></div><span class="admin-day-label">Sam</span></div>
-                                <div class="admin-day-col"><div class="admin-day-bar-bg"><div class="admin-day-bar-fill" style="height: 30%;"></div></div><span class="admin-day-label">Dim</span></div>
-                            </div>
-                        </div>
-
-                        <!-- Widget 2: Taux de réachat -->
-                        <div class="admin-card">
-                            <div class="admin-card-header">
-                                <h3>Taux de Réachat</h3>
-                                <i data-lucide="repeat" style="width: 18px; color: #94A3B8;"></i>
-                            </div>
-                            <div class="admin-gauge-box">
-                                <svg width="180" height="100" viewBox="0 0 180 100">
-                                    <path d="M 20 90 A 70 70 0 0 1 160 90" fill="none" stroke="#F1F5F9" stroke-width="16" stroke-linecap="round"/>
-                                    <path d="M 20 90 A 70 70 0 0 1 142 42" fill="none" stroke="#10B981" stroke-width="16" stroke-linecap="round"/>
-                                </svg>
-                                <div class="admin-gauge-text">
-                                    <div class="val">68%</div>
-                                    <div class="sub">Fidélité étudiants</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Widget 3: Assistant Seny -->
-                        <div class="admin-card" style="background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);">
-                            <div class="admin-card-header">
-                                <div style="display: flex; align-items: center; gap: 0.6rem;">
-                                    <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--orange); color: white; display: flex; align-items: center; justify-content: center; font-size: 1rem;">🤖</div>
-                                    <h3 style="font-size: 0.95rem;">Assistant Seny</h3>
-                                </div>
-                                <span class="stat-badge-positive" style="font-size: 0.72rem;">Actif</span>
-                            </div>
-                            <div style="font-size: 0.85rem; color: #475569; margin-bottom: 0.8rem;">
-                                <strong>148 conversations</strong> traitées cette semaine.
-                            </div>
-                            <div style="font-size: 0.78rem; color: #64748b;">
-                                Question fréquente : <em>"Quel est le prix du pack ENA ?"</em>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Full Width Table: Produits Vedettes -->
-                <div class="admin-card">
-                    <div class="admin-card-header">
-                        <h3>Produits Vedettes (Best Selling Products)</h3>
-                        <a href="#admin-produits" style="font-size: 0.82rem; font-weight: 700; color: var(--blue-deep); text-decoration: none;">Voir tout →</a>
-                    </div>
-                    <div class="admin-table-responsive">
-                        <table class="admin-table">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Produit</th>
-                                    <th>Catégorie</th>
-                                    <th>Ventes</th>
-                                    <th>Chiffre d'affaires</th>
-                                    <th>Note</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><strong>#83001</strong></td>
-                                    <td>
-                                        <div class="admin-prod-title-box">
-                                            <div class="admin-prod-icon">📜</div>
-                                            <div>
-                                                <strong style="display: block; color: var(--blue-deep);">Fascicule Complet — Concours ENA Sénégal</strong>
-                                                <span style="font-size: 0.78rem; color: #94A3B8;">Droit Public & Culture Générale</span>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>Administration</td>
-                                    <td><strong>2 310</strong> vendus</td>
-                                    <td style="font-weight: 700; color: #10B981;">11 550 000 FCFA</td>
-                                    <td><div class="admin-rating-stars">★ 5.0</div></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>#83002</strong></td>
-                                    <td>
-                                        <div class="admin-prod-title-box">
-                                            <div class="admin-prod-icon">👮</div>
-                                            <div>
-                                                <strong style="display: block; color: var(--blue-deep);">Pack Spécial — Concours Police & Gendarmerie</strong>
-                                                <span style="font-size: 0.78rem; color: #94A3B8;">Annales Corrigées 2020-2025</span>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>Sécurité</td>
-                                    <td><strong>1 230</strong> vendus</td>
-                                    <td style="font-weight: 700; color: #10B981;">6 150 000 FCFA</td>
-                                    <td><div class="admin-rating-stars">★ 4.8</div></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>#83003</strong></td>
-                                    <td>
-                                        <div class="admin-prod-title-box">
-                                            <div class="admin-prod-icon">💻</div>
-                                            <div>
-                                                <strong style="display: block; color: var(--blue-deep);">Formation Complète — Développement Web & Mobile</strong>
-                                                <span style="font-size: 0.78rem; color: #94A3B8;">HTML, CSS, JavaScript, React</span>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>Informatique</td>
-                                    <td><strong>812</strong> vendus</td>
-                                    <td style="font-weight: 700; color: #10B981;">12 180 000 FCFA</td>
-                                    <td><div class="admin-rating-stars">★ 4.9</div></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </main>
+    bodyEl.innerHTML = state.cart.map(item => `
+        <div class="cart-item">
+            <div class="cart-item-info">
+                <div class="cart-item-title">${item.product.title}</div>
+                <div class="cart-item-price">${formatPrice(item.product.price)}</div>
+            </div>
+            <div class="cart-item-actions">
+                <button class="btn-qty" onclick="window.updateCartQuantity(${item.product.id}, -1)">-</button>
+                <span class="qty-val">${item.quantity}</span>
+                <button class="btn-qty" onclick="window.updateCartQuantity(${item.product.id}, 1)">+</button>
+            </div>
         </div>
-    `;
+    `).join('');
+}
 
-    // Render Lucide Icons
-    if (window.lucide) {
-        window.lucide.createIcons();
+function renderCheckoutModal() {
+    return `
+    <div class="modal-overlay ${state.isCheckoutOpen ? 'open' : ''}" id="checkoutModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 class="modal-title">Valider ma Commande</h3>
+                <button class="btn-close-drawer" onclick="window.closeCheckout()">&times;</button>
+            </div>
+            
+            ${state.orderSuccess ? `
+                <div style="text-align: center; padding: 2rem 0;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">✅</div>
+                    <h3 style="color: #059669; margin-bottom: 0.5rem;">Commande Enregistrée !</h3>
+                    <p style="color: #64748B; font-size: 0.95rem;">Merci pour votre confiance. Notre équipe vous contactera sur WhatsApp pour vous livrer vos fascicules numériques.</p>
+                    <button class="btn-submit-order" style="margin-top: 1.5rem; background: #0F2C59;" onclick="window.closeCheckout()">Fermer</button>
+                </div>
+            ` : `
+                <form onsubmit="window.handleOrderConfirm(event)">
+                    <div style="background: #F8FAFC; border-radius: 8px; padding: 0.85rem; margin-bottom: 1.25rem; font-size: 0.9rem; color: #475569;">
+                        Articles : <strong>${getCartCount()}</strong> | Total : <strong style="color: #059669;">${formatPrice(getCartTotal())}</strong>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Nom complet *</label>
+                        <input type="text" class="form-control" id="orderName" placeholder="Ex: Fatou Ndiaye" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Téléphone (WhatsApp) *</label>
+                        <input type="tel" class="form-control" id="orderPhone" placeholder="Ex: +221 77 123 45 67" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" id="orderEmail" placeholder="votre@email.com">
+                    </div>
+
+                    <button type="submit" class="btn-submit-order">Confirmer la commande</button>
+                </form>
+            `}
+        </div>
+    </div>
+    `;
+}
+
+// ==========================================
+// 5. Global Window Functions & Event Handlers
+// ==========================================
+window.selectSector = function(sector) {
+    state.selectedSector = sector;
+    renderApp();
+};
+
+window.selectType = function(type) {
+    state.selectedType = type;
+    renderApp();
+};
+
+window.setCatalogueFilter = function(sector) {
+    state.selectedSector = sector;
+    window.location.hash = '#catalogue';
+};
+
+window.handleAddToCart = function(productId, btnEl) {
+    addToCart(productId);
+    if (btnEl) {
+        btnEl.classList.add('added');
+        btnEl.innerHTML = '<span>✓ Ajouté</span>';
+        setTimeout(() => {
+            btnEl.classList.remove('added');
+            btnEl.innerHTML = '<span>🛒 Ajouter</span>';
+        }, 1200);
+    }
+};
+
+window.updateCartQuantity = function(productId, delta) {
+    updateCartQuantity(productId, delta);
+};
+
+window.toggleCart = function(isOpen) {
+    state.isCartOpen = isOpen;
+    const backdrop = document.getElementById('cartDrawerBackdrop');
+    if (backdrop) {
+        if (isOpen) backdrop.classList.add('open');
+        else backdrop.classList.remove('open');
+    }
+};
+
+window.openCheckout = function() {
+    if (state.cart.length === 0) return;
+    state.isCheckoutOpen = true;
+    state.orderSuccess = false;
+    const modal = document.getElementById('checkoutModal');
+    if (modal) modal.classList.add('open');
+    renderApp();
+};
+
+window.closeCheckout = function() {
+    state.isCheckoutOpen = false;
+    state.orderSuccess = false;
+    renderApp();
+};
+
+window.handleOrderConfirm = function(e) {
+    e.preventDefault();
+    state.orderSuccess = true;
+    state.cart = [];
+    updateCartUI();
+    renderApp();
+};
+
+window.handleContactSubmit = function(e) {
+    e.preventDefault();
+    alert('Merci ! Votre message a bien été envoyé à l\'équipe SK ACADEMIA.');
+    e.target.reset();
+};
+
+// ==========================================
+// 6. Router & Core Application Render Loop
+// ==========================================
+function renderApp() {
+    const appEl = document.getElementById('app');
+    if (!appEl) return;
+
+    let pageHtml = '';
+    switch (state.currentRoute) {
+        case 'accueil':
+            pageHtml = renderAccueilPage();
+            break;
+        case 'catalogue':
+            pageHtml = renderCataloguePage();
+            break;
+        case 'formations':
+            pageHtml = renderFormationsPage();
+            break;
+        case 'a-propos':
+            pageHtml = renderAProposPage();
+            break;
+        case 'contact':
+            pageHtml = renderContactPage();
+            break;
+        default:
+            pageHtml = renderAccueilPage();
     }
 
-    // CSV Export Listener
-    const exportBtn = document.getElementById('adminExportBtn');
-    if (exportBtn) {
-        exportBtn.addEventListener('click', () => {
-            const csvContent = "data:text/csv;charset=utf-8,ID,Produit,Categorie,Ventes,CA\n83001,Fascicule ENA,Administration,2310,11550000\n83002,Pack Police,Securite,1230,6150000\n83003,Formation Dev Web,Informatique,812,12180000";
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "sk_academia_rapport_ventes.csv");
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+    appEl.innerHTML = `
+        ${renderHeader()}
+        <main>
+            ${pageHtml}
+        </main>
+        ${renderFooter()}
+        ${renderCartDrawer()}
+        ${renderCheckoutModal()}
+    `;
+
+    // Attach listeners after render
+    renderCartDrawerBody();
+    
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            state.searchQuery = e.target.value;
+            renderApp();
+            // Restore focus and cursor
+            const updatedInput = document.getElementById('searchInput');
+            if (updatedInput) {
+                updatedInput.focus();
+                updatedInput.setSelectionRange(updatedInput.value.length, updatedInput.value.length);
+            }
         });
     }
 
-    // Render Revenue Evolution Chart (Chart.js)
-    setTimeout(() => {
-        const canvas = document.getElementById('revenueChartCanvas');
-        if (canvas && window.Chart) {
-            const ctx = canvas.getContext('2d');
-            new window.Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: ['1 Jan', '5 Jan', '10 Jan', '15 Jan', '20 Jan', '25 Jan', '30 Jan'],
-                    datasets: [{
-                        label: "Chiffre d'Affaires (FCFA)",
-                        data: [120000, 190000, 240000, 310000, 280000, 390000, 446700],
-                        borderColor: '#0f172a',
-                        borderWidth: 3,
-                        backgroundColor: 'rgba(15, 23, 42, 0.05)',
-                        fill: true,
-                        tension: 0.4,
-                        pointRadius: 4,
-                        pointBackgroundColor: '#f5a623'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false }
-                    },
-                    scales: {
-                        x: { grid: { display: false } },
-                        y: { 
-                            grid: { color: '#F1F5F9' },
-                            ticks: {
-                                callback: function(value) { return value.toLocaleString() + ' F'; }
-                            }
-                        }
-                    }
-                }
-            });
-        }
-    }, 100);
+    const openCartBtn = document.getElementById('openCartDrawerBtn');
+    if (openCartBtn) {
+        openCartBtn.addEventListener('click', () => window.toggleCart(true));
+    }
 }
+
+function handleHashChange() {
+    const hash = window.location.hash.replace('#', '') || 'accueil';
+    if (['accueil', 'catalogue', 'formations', 'a-propos', 'contact'].includes(hash)) {
+        state.currentRoute = hash;
+    } else {
+        state.currentRoute = 'accueil';
+    }
+    renderApp();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Initial Boot
+document.addEventListener('DOMContentLoaded', () => {
+    window.addEventListener('hashchange', handleHashChange);
+    handleHashChange();
+});
